@@ -1,30 +1,80 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-import 'package:veynspark_v1/main.dart';
+import 'package:veynspark_v1/app/glyna_app.dart';
+import 'package:veynspark_v1/content/bento_content.dart';
+import 'package:veynspark_v1/models/challenge.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  // Pas de réseau en test : les polices retombent sur la police par défaut.
+  GoogleFonts.config.allowRuntimeFetching = false;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  final challenges = <Challenge>[
+    ...BentoContent.goalChallenges,
+    ...BentoContent.opportunityChallenges,
+  ];
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  // Du plus petit iPhone encore courant au plus grand.
+  const sizes = {'iPhone SE': Size(375, 667), 'iPhone Pro Max': Size(430, 932)};
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
-  });
+  for (final MapEntry(key: name, value: size) in sizes.entries) {
+    testWidgets('le bento tient sans débordement sur $name', (tester) async {
+      tester.view.physicalSize = size * tester.view.devicePixelRatio;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(const GlynaApp());
+
+      for (final challenge in challenges) {
+        expect(find.text(challenge.title), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets(
+    'nettoyer la grille : vibrations dans l\'ordre, puis grille vide',
+    (tester) async {
+      final moments = <String>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('glyna/haptics'),
+        (call) async {
+          moments.add(call.arguments as String);
+          return null;
+        },
+      );
+
+      tester.view.physicalSize =
+          sizes['iPhone Pro Max']! * tester.view.devicePixelRatio;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(const GlynaApp());
+
+      for (final challenge in challenges) {
+        await tester.tap(find.text(challenge.title));
+        // La tuile s'enfonce : toujours là, pas encore d'impact.
+        await tester.pump();
+        expect(moments.last, 'tileTap');
+        await tester.pumpAndSettle();
+        expect(find.text(challenge.title), findsNothing);
+        expect(tester.takeException(), isNull);
+      }
+
+      expect(moments, [
+        for (var i = 0; i < challenges.length - 1; i++) ...[
+          'tileTap',
+          'tileCleaned',
+        ],
+        'tileTap',
+        'gridCleared',
+      ]);
+      expect(find.text(BentoContent.clearedTitle), findsOneWidget);
+
+      await tester.tap(find.text(BentoContent.replayDemo));
+      await tester.pumpAndSettle();
+      for (final challenge in challenges) {
+        expect(find.text(challenge.title), findsOneWidget);
+      }
+    },
+  );
 }
