@@ -24,13 +24,15 @@ Ne jamais toucher à `lib/theme/`, sauf si la tâche le demande explicitement.
 
 ## Les tâches
 
-- [ ] **1. Modèles de données.** Créer dans `lib/models/` les classes du domaine :
-  `Challenge` (titre, domaine, type objectif ou opportunité, niveau, durée estimée,
-  contexte requis, mode de validation), `Goal` (titre, échéance, niveau de départ,
-  quota hebdomadaire), `WeekQuota`, `ChallengeLog` (défi, date, état : proposé,
-  accepté, réussi, reporté, abandonné, et raison de report éventuelle). Classes
-  immuables, `copyWith`, sérialisation JSON, `==` et `hashCode`. Tests unitaires
-  de la sérialisation aller-retour pour chaque modèle.
+- [ ] **1. Modèles de données.** `lib/models/challenge.dart` existe déjà :
+  **l'étendre sans casser son usage actuel** dans le bento, ne pas le réécrire de
+  zéro. Compléter `Challenge` s'il manque des champs (domaine, niveau, contexte
+  requis, mode de validation), puis ajouter `Goal` (titre, échéance, niveau de
+  départ, quota hebdomadaire), `WeekQuota`, et `ChallengeLog` (défi, date, état :
+  proposé, accepté, réussi, reporté, abandonné, et raison de report éventuelle).
+  Classes immuables, `copyWith`, sérialisation JSON, `==` et `hashCode`. Tests
+  unitaires de la sérialisation aller-retour pour chaque modèle. Vérifier que
+  l'écran du bento compile toujours après la modification.
 
 - [ ] **2. Bibliothèque de défis.** Écrire dans `lib/content/` **60 défis** en
   français, répartis sur les domaines du brief : bouger, lire, cuisiner, créer,
