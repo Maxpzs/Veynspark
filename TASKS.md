@@ -24,7 +24,7 @@ Ne jamais toucher à `lib/theme/`, sauf si la tâche le demande explicitement.
 
 ## Les tâches
 
-- [ ] **1. Modèles de données.** `lib/models/challenge.dart` existe déjà :
+- [x] **1. Modèles de données.** `lib/models/challenge.dart` existe déjà :
   **l'étendre sans casser son usage actuel** dans le bento, ne pas le réécrire de
   zéro. Compléter `Challenge` s'il manque des champs (domaine, niveau, contexte
   requis, mode de validation), puis ajouter `Goal` (titre, échéance, niveau de
