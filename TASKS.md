@@ -49,7 +49,7 @@ Ne jamais toucher à `lib/theme/`, sauf si la tâche le demande explicitement.
   des méthodes simples de lecture et d'écriture, sans que le reste de l'app ne
   connaisse la base. Tests sur une base en mémoire.
 
-- [ ] **4. Logique de la semaine.** Dans `lib/engine/`, un service qui : calcule le
+- [x] **4. Logique de la semaine.** Dans `lib/engine/`, un service qui : calcule le
   quota hebdomadaire d'un objectif à partir de son échéance et de son niveau de
   départ ; sait dire où en est la semaine en cours ; permet de déplacer un défi d'un
   jour à l'autre **à l'intérieur de la semaine uniquement** ; ferme la semaine le

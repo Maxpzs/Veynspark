@@ -14,3 +14,20 @@
 - **Répartition objectif / opportunité.** J'ai pris 4 défis à objectif et 6
   d'opportunité par domaine (24 / 36), calqué sur le ratio du bento (≈ 2 sur 5).
   À confirmer.
+
+## Tâche 4 — Logique de la semaine
+
+- **Formule du quota hebdomadaire.** Le brief ne donne pas de formule. J'ai pris
+  une règle simple, isolée dans `lib/engine/weekly_quota_rule.dart` : niveau de
+  départ + 1 (niveau 1 → 2 défis, 2 → 3, 3 → 4), un de plus dans les 4 dernières
+  semaines avant l'échéance, borné entre 2 et 5, et 0 une fois l'échéance passée.
+  Faut-il une montée progressive semaine après semaine, ou un quota qui dépend du
+  type d'objectif (courir ≠ lire) ?
+- **Heure de clôture du dimanche.** « Le dimanche soir » n'a pas d'heure : j'ai
+  fixé 18 h (`weekClosingHour`). À confirmer.
+- **Réussites rattachées à un objectif.** `ChallengeLog` ne dit pas à quel
+  objectif une réussite contribue ; le bilan lit donc `WeekQuota.done` tel
+  qu'enregistré. Faut-il ajouter un `goalId` au journal pour recalculer le
+  compteur à partir des réussites ?
+- **Déplacement vers un jour déjà passé.** Autorisé, puisque le brief ne pose
+  aucun verrou dans la semaine. À confirmer.
