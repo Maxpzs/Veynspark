@@ -4,6 +4,7 @@ import UIKit
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private let haptics = GlynaHaptics()
+  private let lockStream = GlynaLockStream()
 
   override func application(
     _ application: UIApplication,
@@ -21,6 +22,10 @@ import UIKit
         haptics.play(moment)
         result(nil)
       }
+    }
+    if let registrar = registrar(forPlugin: "GlynaLock") {
+      FlutterEventChannel(name: "glyna/lock", binaryMessenger: registrar.messenger())
+        .setStreamHandler(lockStream)
     }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
@@ -56,5 +61,41 @@ final class GlynaHaptics {
     default:
       break
     }
+  }
+}
+
+/// État de verrouillage de l'appareil, pour les défis à minuteur.
+///
+/// Verrouillé tant que les données protégées sont indisponibles
+/// (`isProtectedDataAvailable`). Émet l'état courant dès l'abonnement, puis
+/// chaque changement. Aucune autorisation requise.
+final class GlynaLockStream: NSObject, FlutterStreamHandler {
+  private var sink: FlutterEventSink?
+  private var observers: [NSObjectProtocol] = []
+
+  func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)
+    -> FlutterError?
+  {
+    sink = events
+    let center = NotificationCenter.default
+    observers = [
+      center.addObserver(
+        forName: UIApplication.protectedDataWillBecomeUnavailableNotification,
+        object: nil, queue: .main
+      ) { [weak self] _ in self?.sink?(true) },
+      center.addObserver(
+        forName: UIApplication.protectedDataDidBecomeAvailableNotification,
+        object: nil, queue: .main
+      ) { [weak self] _ in self?.sink?(false) },
+    ]
+    events(!UIApplication.shared.isProtectedDataAvailable)
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    observers.forEach(NotificationCenter.default.removeObserver)
+    observers = []
+    sink = nil
+    return nil
   }
 }

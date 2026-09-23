@@ -79,3 +79,26 @@
 - **Exclusion.** La version réduite n'est jamais un défi déjà posé dans le
   `WeekPlan` de la semaine. Le journal n'est pas consulté : un défi réussi
   cette semaine mais absent du plan pourrait être proposé.
+
+## Tâche 7 — Service de minuteur
+
+- **iOS sans code de verrouillage.** `isProtectedDataAvailable` ne passe à faux
+  que si l'appareil a un code. Sans code, le compteur ne démarre jamais. Et avec
+  un code, iOS ne coupe l'accès aux données qu'environ 10 s après le
+  verrouillage : ces secondes ne sont pas comptées. Faut-il un repli (par
+  exemple l'app en arrière-plan + écran éteint), au risque d'une preuve moins
+  solide, ou un message qui explique pourquoi le compteur ne tourne pas ?
+- **Écran éteint sans verrou, sur Android.** J'ai compté l'écran éteint comme
+  « verrouillé », même si l'écran de verrouillage n'est pas encore affiché
+  (délai de verrouillage). Le compteur s'arrête au retour de la personne
+  (`ACTION_USER_PRESENT`, ou écran rallumé sans verrou). À confirmer.
+- **Fin atteinte pendant le verrouillage.** L'app étant suspendue pendant le
+  verrouillage, la réussite est constatée au déverrouillage, pas à la minute
+  exacte. Faut-il prévenir la personne à la fin (notification locale, vibration),
+  ou la laisser découvrir en déverrouillant ?
+- **Reprise.** Après un arrêt, un nouveau verrouillage ne relance pas le
+  compteur tout seul : la personne doit toucher « On reprend ? ». Le temps déjà
+  tenu est gardé. Faut-il plutôt reprendre automatiquement au verrouillage ?
+- **Persistance.** L'état du minuteur n'est pas sauvegardé : si le système tue
+  l'app pendant le verrouillage, le défi est perdu. À traiter quand l'écran de
+  défi en cours sera construit ?

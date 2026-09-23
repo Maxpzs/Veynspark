@@ -2,6 +2,7 @@ package com.example.veynspark_v1
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
@@ -18,5 +19,7 @@ class MainActivity : FlutterActivity() {
                     result.notImplemented()
                 }
             }
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, "glyna/lock")
+            .setStreamHandler(GlynaLockStream(applicationContext))
     }
 }

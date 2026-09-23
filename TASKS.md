@@ -69,7 +69,7 @@ Ne jamais toucher à `lib/theme/`, sauf si la tâche le demande explicitement.
   seule fois, jamais répétée, et refusable sans conséquence. Tests sur le compteur
   de reports et sur la non-répétition.
 
-- [ ] **7. Service de minuteur.** Dans `lib/validation/`, la **logique seule**, sans
+- [x] **7. Service de minuteur.** Dans `lib/validation/`, la **logique seule**, sans
   interface : démarrage, arrêt, reprise, et détection de l'état de verrouillage de
   l'appareil selon la note technique du brief. Le compteur ne progresse que pendant
   que l'appareil est verrouillé. Exposer un flux d'état que l'interface pourra
