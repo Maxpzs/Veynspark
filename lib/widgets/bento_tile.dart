@@ -5,10 +5,11 @@ import '../models/challenge.dart';
 import '../theme/theme.dart';
 import 'context_icon.dart';
 
-/// Une tuile du bento. Remplit l'espace que la grille lui donne.
+/// Une tuile du bento. Remplit l'espace que la grille lui donne : sa taille
+/// dit la durée du défi.
 ///
-/// Tuile à objectif : bord violet, titre plus gros, rappel de l'objectif.
-/// Tuile d'opportunité : sans bord, en retrait.
+/// Tuile à objectif : bord violet et rappel de l'objectif. C'est la seule
+/// différence avec une tuile d'opportunité.
 class BentoTile extends StatelessWidget {
   const BentoTile(this.challenge, {super.key, this.onTap});
 
@@ -55,29 +56,48 @@ class BentoTile extends StatelessWidget {
           Row(
             children: [
               ContextIcon(challenge.context),
-              const Spacer(),
-              Text(
-                BentoContent.duration(challenge.estimatedDuration),
-                style: textTheme.labelMedium,
+              const SizedBox(width: GlynaSpacing.xs),
+              Expanded(
+                child: Text(
+                  BentoContent.duration(challenge.estimatedDuration),
+                  style: textTheme.labelMedium,
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
-          const Spacer(),
-          Text(
-            challenge.title,
-            style: isGoal ? textTheme.titleLarge : textTheme.titleMedium,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (reminder != null) ...[
-            const SizedBox(height: GlynaSpacing.xxs),
-            Text(
-              reminder,
-              style: textTheme.bodySmall,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          // Dans une petite tuile, le titre cède de la place au lieu de
+          // déborder.
+          Expanded(
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flexible(
+                    child: Text(
+                      challenge.title,
+                      style: textTheme.titleMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (reminder != null) ...[
+                    const SizedBox(height: GlynaSpacing.xxs),
+                    Text(
+                      reminder,
+                      style: textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ],
+          ),
         ],
       ),
     );

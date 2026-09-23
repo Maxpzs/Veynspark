@@ -99,8 +99,9 @@ class Challenge {
 
   final ValidationMode validation;
 
-  /// Rappel de l'objectif, ex. « → marathon, 1/3 cette semaine ». Écrit en dur
-  /// pour l'instant, il sera calculé par le moteur à partir du quota.
+  /// Rappel de l'objectif, ex. « → Marathon, 1/3 cette semaine ». La
+  /// bibliothèque porte un rappel générique ; le bento du jour le remplace par
+  /// celui de l'objectif et de son quota.
   final String? goalReminder;
 
   /// [goalReminder] se passe sous forme de fonction pour pouvoir le remettre à

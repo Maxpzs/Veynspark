@@ -69,6 +69,7 @@ void main() {
     final goal = Goal(
       id: 'marathon',
       title: 'Marathon',
+      domain: ChallengeDomain.move,
       deadline: DateTime(2027, 3, 20),
       startingLevel: 2,
       weeklyQuota: 3,

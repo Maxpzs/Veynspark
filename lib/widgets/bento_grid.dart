@@ -1,32 +1,40 @@
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 
+import '../engine/bento_layout.dart';
 import '../models/challenge.dart';
 import '../theme/theme.dart';
 import 'bento_tile.dart';
 
 /// La grille du bento. Remplit toute la hauteur disponible.
 ///
-/// Les défis à objectif prennent toute la largeur, en haut. En dessous, les
-/// défis d'opportunité : le premier occupe la colonne de gauche, les suivants
-/// s'empilent à droite. Avec deux défis d'opportunité, ils sont côte à côte.
+/// La surface de chaque tuile suit la durée du défi, et la disposition change
+/// chaque jour, avec toujours une tuile à objectif en haut : voir
+/// [BentoLayout].
 ///
-/// Quand un défi disparaît de [goals] ou [opportunities], la grille joue le
+/// Quand un défi disparaît de [tiles], la grille joue le
 /// nettoyage : la tuile s'enfonce, [onTileImpact] est appelé, elle quitte la
 /// grille, et les autres se recomposent avec le ressort
 /// [GlynaMotion.gridSpring].
 class BentoGrid extends StatefulWidget {
   const BentoGrid({
     super.key,
-    required this.goals,
-    required this.opportunities,
+    required this.day,
+    required this.dayTiles,
+    required this.tiles,
     required this.onTileTap,
     required this.onTileImpact,
     required this.empty,
   });
 
-  final List<Challenge> goals;
-  final List<Challenge> opportunities;
+  /// Le jour de la grille : il décide de la disposition.
+  final DateTime day;
+
+  /// Toute la grille du jour, tuiles déjà nettoyées comprises.
+  final List<Challenge> dayTiles;
+
+  /// Les tuiles encore dans la grille.
+  final List<Challenge> tiles;
 
   final ValueChanged<Challenge> onTileTap;
 
@@ -43,8 +51,8 @@ class BentoGrid extends StatefulWidget {
 
 class _BentoGridState extends State<BentoGrid> with TickerProviderStateMixin {
   /// Tuiles disposées dans la grille, y compris celles qui s'enfoncent.
-  late List<Challenge> _goals = [...widget.goals];
-  late List<Challenge> _opportunities = [...widget.opportunities];
+  late List<Challenge> _tiles = [...widget.tiles];
+  late BentoLayout _layout = _layoutFor(widget);
 
   final Map<String, AnimationController> _presses = {};
   final Map<String, _ExitingTile> _exits = {};
@@ -56,7 +64,31 @@ class _BentoGridState extends State<BentoGrid> with TickerProviderStateMixin {
 
   Size _size = Size.zero;
 
-  Iterable<Challenge> get _laidOut => _goals.followedBy(_opportunities);
+  Iterable<Challenge> get _laidOut => _tiles;
+
+  static BentoLayout _layoutFor(BentoGrid grid) => BentoLayout(
+    day: [
+      for (final c in grid.dayTiles)
+        BentoSlot(
+          id: c.id,
+          weight: _weight(c.estimatedDuration),
+          isGoal: c.kind == ChallengeKind.goal,
+        ),
+    ],
+    seed: BentoLayout.seedFor(grid.day),
+    gap: GlynaSpacing.bentoGap,
+    minSide: GlynaShape.bentoMinTileSide,
+    maxAspect: GlynaShape.bentoMaxTileAspect,
+  );
+
+  /// La surface suit la durée, entre [GlynaShape.bentoShortestTile] et
+  /// [GlynaShape.bentoLongestTile].
+  static double _weight(Duration duration) => duration.inSeconds
+      .clamp(
+        GlynaShape.bentoShortestTile.inSeconds,
+        GlynaShape.bentoLongestTile.inSeconds,
+      )
+      .toDouble();
 
   void _tick() => setState(() {});
 
@@ -70,13 +102,12 @@ class _BentoGridState extends State<BentoGrid> with TickerProviderStateMixin {
   @override
   void didUpdateWidget(BentoGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final incoming = {
-      for (final c in widget.goals.followedBy(widget.opportunities)) c.id,
-    };
+    final incoming = {for (final c in widget.tiles) c.id};
     final shown = {for (final c in _laidOut) c.id};
 
-    if (incoming.any((id) => !shown.contains(id))) {
-      _resetTo(widget.goals, widget.opportunities);
+    if (widget.day != oldWidget.day ||
+        incoming.any((id) => !shown.contains(id))) {
+      _resetTo(widget);
       return;
     }
     for (final challenge in _laidOut.toList()) {
@@ -88,7 +119,7 @@ class _BentoGridState extends State<BentoGrid> with TickerProviderStateMixin {
   }
 
   /// Une nouvelle grille arrive (nouveau jour, démo rejouée) : pas d'animation.
-  void _resetTo(List<Challenge> goals, List<Challenge> opportunities) {
+  void _resetTo(BentoGrid grid) {
     for (final press in _presses.values) {
       press.dispose();
     }
@@ -99,8 +130,8 @@ class _BentoGridState extends State<BentoGrid> with TickerProviderStateMixin {
     _exits.clear();
     _spring.value = 1;
     _from = const {};
-    _goals = [...goals];
-    _opportunities = [...opportunities];
+    _tiles = [...grid.tiles];
+    _layout = _layoutFor(grid);
   }
 
   void _press(Challenge challenge) {
@@ -132,8 +163,7 @@ class _BentoGridState extends State<BentoGrid> with TickerProviderStateMixin {
 
     setState(() {
       _from = current;
-      _goals.removeWhere((c) => c.id == id);
-      _opportunities.removeWhere((c) => c.id == id);
+      _tiles.removeWhere((c) => c.id == id);
     });
     exit.forward();
     _spring.animateWith(SpringSimulation(GlynaMotion.gridSpring, 0, 1, 0));
@@ -141,11 +171,7 @@ class _BentoGridState extends State<BentoGrid> with TickerProviderStateMixin {
 
   /// Place de chaque tuile à cet instant de la recomposition.
   Map<String, Rect> _currentRects() {
-    final target = _targetRects(
-      _goals.map((c) => c.id).toList(),
-      _opportunities.map((c) => c.id).toList(),
-      _size,
-    );
+    final target = _layout.place({for (final c in _tiles) c.id}, _size);
     return {
       for (final MapEntry(key: id, value: rect) in target.entries)
         id: switch (_from[id]) {
@@ -179,7 +205,7 @@ class _BentoGridState extends State<BentoGrid> with TickerProviderStateMixin {
     return LayoutBuilder(
       builder: (context, constraints) {
         _size = constraints.biggest;
-        if (_goals.isEmpty && _opportunities.isEmpty && _exits.isEmpty) {
+        if (_tiles.isEmpty && _exits.isEmpty) {
           return widget.empty;
         }
         final rects = _currentRects();
@@ -231,51 +257,4 @@ class _ExitingTile {
       child: Transform.scale(scale: scale, child: BentoTile(challenge)),
     );
   }
-}
-
-/// Place cible de chaque tuile dans une grille de taille [size].
-Map<String, Rect> _targetRects(
-  List<String> goals,
-  List<String> opportunities,
-  Size size,
-) {
-  const gap = GlynaSpacing.bentoGap;
-  final hasOpportunities = opportunities.isNotEmpty;
-  final rows = goals.length + (hasOpportunities ? 1 : 0);
-  if (rows == 0) return const {};
-
-  final weight =
-      goals.length * GlynaShape.bentoGoalFlex +
-      (hasOpportunities ? GlynaShape.bentoOpportunityFlex : 0);
-  final unit = (size.height - gap * (rows - 1)) / weight;
-  final rects = <String, Rect>{};
-
-  var y = 0.0;
-  for (final id in goals) {
-    final height = unit * GlynaShape.bentoGoalFlex;
-    rects[id] = Rect.fromLTWH(0, y, size.width, height);
-    y += height + gap;
-  }
-  if (!hasOpportunities) return rects;
-
-  final zoneHeight = size.height - y;
-  if (opportunities.length == 1) {
-    rects[opportunities.single] = Rect.fromLTWH(0, y, size.width, zoneHeight);
-    return rects;
-  }
-
-  final columnWidth = (size.width - gap) / 2;
-  rects[opportunities.first] = Rect.fromLTWH(0, y, columnWidth, zoneHeight);
-  final stacked = opportunities.skip(1).toList();
-  final stackedHeight =
-      (zoneHeight - gap * (stacked.length - 1)) / stacked.length;
-  for (final (i, id) in stacked.indexed) {
-    rects[id] = Rect.fromLTWH(
-      columnWidth + gap,
-      y + i * (stackedHeight + gap),
-      columnWidth,
-      stackedHeight,
-    );
-  }
-  return rects;
 }

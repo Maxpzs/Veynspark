@@ -122,3 +122,64 @@
   Faut-il les compter comme des refus ?
 - **Durée de rétention.** Les événements s'accumulent sans limite. Faut-il
   purger au-delà de 30 ou 60 jours, et les inclure dans l'export de données ?
+
+## Bento branché sur le moteur
+
+- **Domaine des objectifs.** Pour relier un défi nettoyé à son objectif, `Goal`
+  porte désormais un `domain` (schéma v3). Un défi à objectif compte pour le
+  premier objectif ouvert de son domaine, le plus proche de son échéance. Deux
+  objectifs du même domaine (marathon et trail) se départagent donc mal. Faut-il
+  un `goalId` dans le journal ?
+- **Grille gardée dans le journal.** La grille du jour est écrite comme entrées
+  « proposé » au premier lancement de la journée, puis relue telle quelle. Le
+  balayage et « Rien ne me va », quand ils existeront, devront tenir compte de
+  ces entrées pour ne pas faire revenir l'ancienne grille.
+- **Tuile réussie : visible et cochée, ou retirée ?** Le brief dit qu'une tuile
+  réussie « reste visible, cochée, jusqu'au lendemain » ; la section « Le
+  plaisir de nettoyer » la fait quitter la grille. L'écran suit la seconde :
+  au redémarrage, les tuiles déjà nettoyées restent hors de la grille.
+- **Bouton « Rejouer (démo) » retiré.** Il remettait la grille à zéro en
+  mémoire seulement : rejouer aurait réinscrit des réussites et gonflé le
+  quota. Pour retester le nettoyage, effacer les données de l'app.
+- **Aucun objectif tant que l'onboarding n'existe pas.** Rien n'écrit encore
+  d'objectif : sur l'appareil, le bento ne montre que des défis d'opportunité.
+
+## Bento proportionnel à la durée
+
+- **Proportionnelle, mais bornée.** Les durées de la bibliothèque vont de 1 min
+  à 3 h (rapport 180). Strictement proportionnelle, une tuile d'une minute
+  serait intouchable. La surface suit la durée entre 10 et 90 min
+  (`GlynaShape.bentoShortestTile` / `bentoLongestTile`) : en dessous, une tuile
+  a la taille d'un défi de 10 min ; au-delà, celle d'un défi de 90 min.
+  Bornes à valider.
+- **« Jamais identiques deux jours de suite ».** La disposition est tirée par
+  une graine qui dépend de la date, parmi le meilleur tiers des dispositions
+  lisibles. Comme les défis changent chaque jour, les formes changent
+  forcément ; mais rien ne garantit mathématiquement que le motif abstrait
+  (qui est à côté de qui) diffère de la veille. Faut-il le garantir, en
+  gardant la disposition de la veille ?
+- **Recomposition après nettoyage.** Les tuiles restantes prennent la
+  disposition lisible la plus proche de celle du matin, en gardant une tuile à
+  objectif en haut tant qu'il en reste. Elle ne dépend pas de l'ordre de
+  nettoyage : rouvrir l'app rend la même grille.
+- **Coût du calcul.** Toutes les découpes sont énumérées : environ 20 ms pour
+  cinq tuiles sur ordinateur, une fois par jour et par taille d'écran. Sur un
+  téléphone en mode debug, possible saccade au premier affichage.
+
+## Défi en cours
+
+- **Le tap lance directement le défi.** L'écran de détail (« Faire
+  maintenant ») n'existe pas encore : un tap sur une tuile à minuteur ouvre le
+  défi en cours. Les tuiles des modes pas encore construits (sport,
+  co-présence, déclaratif) se nettoient toujours d'un tap, comme avant.
+- **Photo facultative après la réussite.** Pas construite : pas encore de
+  paquet caméra.
+- **Retour système = arrêter.** L'écran n'a aucune navigation ; le geste
+  retour d'Android ou d'iOS arrête le défi, comme le bouton « Arrêter ».
+- **Réussite enregistrée avant le retour au bento.** La réussite s'écrit dès
+  que le minuteur est validé ; la tuile quitte la grille au retour au bento.
+  Si l'app est tuée entre les deux, la tuile est considérée nettoyée au
+  prochain lancement.
+- **Défi arrêté puis relancé.** Une tuile arrêtée reste dans la grille et se
+  relance autant de fois qu'on veut ; chaque lancement et chaque arrêt
+  s'inscrivent au journal.

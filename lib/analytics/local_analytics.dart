@@ -1,3 +1,4 @@
+import '../engine/clock.dart';
 import '../store/glyna_repository.dart';
 import 'analytics.dart';
 import 'analytics_event.dart';
@@ -5,12 +6,12 @@ import 'analytics_event.dart';
 /// Écrit les événements dans la base de l'appareil. Rien ne sort du
 /// téléphone.
 class LocalAnalytics implements Analytics {
-  LocalAnalytics(this._repository, {DateTime Function()? clock})
-    : _clock = clock ?? DateTime.now;
+  LocalAnalytics(this._repository, {Clock clock = const SystemClock()})
+    : _clock = clock;
 
   final GlynaRepository _repository;
 
-  final DateTime Function() _clock;
+  final Clock _clock;
 
   @override
   Future<void> appOpened() => _record(AnalyticsEventType.appOpened);
@@ -62,7 +63,7 @@ class LocalAnalytics implements Analytics {
   }) => _repository.addEvent(
     AnalyticsEvent(
       type: type,
-      at: _clock(),
+      at: _clock.now(),
       challengeId: challengeId,
       onboardingStep: step,
       feedPostId: postId,

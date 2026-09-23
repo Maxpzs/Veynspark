@@ -7,10 +7,14 @@ import 'package:veynspark_v1/analytics/local_analytics.dart';
 import 'package:veynspark_v1/store/glyna_repository.dart';
 import 'package:veynspark_v1/store/local/glyna_database.dart';
 
+import 'support/legacy_schema.dart';
+
+import 'support/fake_clock.dart';
+
 void main() {
   late GlynaRepository repository;
   late LocalAnalytics analytics;
-  late DateTime now;
+  late FakeClock clock;
 
   final monday = DateTime(2026, 9, 21);
   final nextMonday = DateTime(2026, 9, 28);
@@ -20,9 +24,9 @@ void main() {
   });
 
   setUp(() {
-    now = DateTime(2026, 9, 21, 8);
+    clock = FakeClock(DateTime(2026, 9, 21, 8));
     repository = GlynaRepository(GlynaDatabase(NativeDatabase.memory()));
-    analytics = LocalAnalytics(repository, clock: () => now);
+    analytics = LocalAnalytics(repository, clock: clock);
   });
 
   tearDown(() => repository.close());
@@ -32,7 +36,7 @@ void main() {
       'chaque méthode écrit l’événement attendu, daté par l’horloge',
       () async {
         await analytics.appOpened();
-        now = now.add(const Duration(minutes: 1));
+        clock.advance(const Duration(minutes: 1));
         await analytics.onboardingStepReached(3);
         await analytics.onboardingCompleted();
         await analytics.challengeProposed('courir-5km');
@@ -94,13 +98,13 @@ void main() {
 
     test('la relecture ne garde que la période demandée, bornes comprises '
         'au début et exclues à la fin', () async {
-      now = DateTime(2026, 9, 20, 23, 59);
+      clock.current = DateTime(2026, 9, 20, 23, 59);
       await analytics.appOpened();
-      now = monday;
+      clock.current = monday;
       await analytics.appOpened();
-      now = DateTime(2026, 9, 27, 22);
+      clock.current = DateTime(2026, 9, 27, 22);
       await analytics.appOpened();
-      now = nextMonday;
+      clock.current = nextMonday;
       await analytics.appOpened();
 
       final week = await analytics.eventsBetween(monday, nextMonday);
@@ -108,9 +112,9 @@ void main() {
     });
 
     test('les événements sortent dans l’ordre chronologique', () async {
-      now = DateTime(2026, 9, 23);
+      clock.current = DateTime(2026, 9, 23);
       await analytics.challengeProposed('b');
-      now = DateTime(2026, 9, 22);
+      clock.current = DateTime(2026, 9, 22);
       await analytics.challengeProposed('a');
 
       final events = await analytics.eventsBetween(monday, nextMonday);
@@ -124,7 +128,7 @@ void main() {
 
   test('une base de la version 1 gagne la table des événements', () async {
     final upgraded = GlynaRepository(
-      GlynaDatabase(NativeDatabase.memory(setup: (db) => db.userVersion = 1)),
+      GlynaDatabase(NativeDatabase.memory(setup: LegacySchema.at(1))),
     );
     addTearDown(upgraded.close);
 

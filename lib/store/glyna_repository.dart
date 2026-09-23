@@ -28,6 +28,7 @@ class GlynaRepository {
         GoalsCompanion.insert(
           id: goal.id,
           title: goal.title,
+          domain: goal.domain,
           deadline: goal.deadline,
           startingLevel: goal.startingLevel,
           weeklyQuota: goal.weeklyQuota,
@@ -88,16 +89,32 @@ class GlynaRepository {
 
   // Journal des défis
 
-  Future<void> addLog(ChallengeLog log) => _db
-      .into(_db.challengeLogs)
-      .insert(
-        ChallengeLogsCompanion.insert(
-          challengeId: log.challengeId,
-          date: log.date,
-          status: log.status,
-          postponeReason: Value(log.postponeReason),
-        ),
-      );
+  Future<void> addLog(ChallengeLog log) =>
+      _db.into(_db.challengeLogs).insert(_logCompanion(log));
+
+  /// Écrit toutes les entrées, dans l'ordre, ou aucune.
+  Future<void> addLogs(List<ChallengeLog> logs) => _db.batch(
+    (batch) =>
+        batch.insertAll(_db.challengeLogs, logs.map(_logCompanion).toList()),
+  );
+
+  /// Enregistre une réussite et, si elle fait avancer un objectif, compte un
+  /// défi de plus dans son quota de la semaine. Les deux, ou rien.
+  ///
+  /// [quota] est le quota tel qu'il serait créé s'il n'existe pas encore en
+  /// base ; son compteur `done` est ignoré s'il existe déjà.
+  Future<void> addSuccess(ChallengeLog log, {WeekQuota? quota}) {
+    assert(
+      log.status == ChallengeStatus.succeeded,
+      'Une réussite, pas autre chose.',
+    );
+    return _db.transaction(() async {
+      await addLog(log);
+      if (quota == null) return;
+      final current = await weekQuota(quota.goalId, quota.weekStart) ?? quota;
+      await saveWeekQuota(current.copyWith(done: current.done + 1));
+    });
+  }
 
   /// Les entrées datées de [from] inclus à [to] exclu, dans l'ordre où elles
   /// ont été écrites.
@@ -116,6 +133,29 @@ class GlynaRepository {
             .get();
     return rows.map(_logFromRow).toList();
   }
+
+  /// Tout le journal jusqu'à [to] exclu, dans l'ordre où il a été écrit.
+  Future<List<ChallengeLog>> logsBefore(DateTime to) async {
+    final rows =
+        await (_db.select(_db.challengeLogs)
+              ..where((l) => l.date.isSmallerThanValue(to))
+              ..orderBy([
+                (l) => OrderingTerm.asc(l.date),
+                (l) => OrderingTerm.asc(l.id),
+              ]))
+            .get();
+    return rows.map(_logFromRow).toList();
+  }
+
+  /// Efface les entrées datées de [from] inclus à [to] exclu. Réservé au
+  /// panneau de débogage : en usage normal, le journal ne fait que grandir.
+  Future<void> deleteLogsBetween(DateTime from, DateTime to) =>
+      (_db.delete(_db.challengeLogs)..where(
+            (l) =>
+                l.date.isBiggerOrEqualValue(from) &
+                l.date.isSmallerThanValue(to),
+          ))
+          .go();
 
   /// Tout l'historique d'un défi, du plus ancien au plus récent.
   Future<List<ChallengeLog>> logsFor(String challengeId) async {
@@ -162,9 +202,28 @@ class GlynaRepository {
     return rows.map(_eventFromRow).toList();
   }
 
+  // Remise à zéro
+
+  /// Efface tout : objectifs, quotas, journal et mesure. La base repart comme
+  /// au premier lancement.
+  Future<void> clear() => _db.transaction(() async {
+    for (final table in _db.allTables) {
+      await _db.delete(table).go();
+    }
+  });
+
+  static ChallengeLogsCompanion _logCompanion(ChallengeLog log) =>
+      ChallengeLogsCompanion.insert(
+        challengeId: log.challengeId,
+        date: log.date,
+        status: log.status,
+        postponeReason: Value(log.postponeReason),
+      );
+
   static Goal _goalFromRow(GoalRow row) => Goal(
     id: row.id,
     title: row.title,
+    domain: row.domain,
     deadline: row.deadline,
     startingLevel: row.startingLevel,
     weeklyQuota: row.weeklyQuota,

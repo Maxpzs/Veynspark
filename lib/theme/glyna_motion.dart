@@ -27,6 +27,12 @@ abstract final class GlynaMotion {
   /// que le mouvement ne doit pas dépasser.
   static const Duration maxSound = Duration(milliseconds: 400);
 
+  /// Rafraîchissement d'un compteur affiché à la seconde. Pas une animation.
+  static const Duration clockTick = Duration(seconds: 1);
+
+  /// Échelle de départ de l'écran de réussite, qui s'ouvre en grandissant.
+  static const double successStartScale = 0.9;
+
   /// Échelle d'une tuile qui s'enfonce légèrement.
   static const double tilePressScale = 0.94;
 

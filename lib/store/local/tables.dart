@@ -1,12 +1,14 @@
 import 'package:drift/drift.dart';
 
 import '../../analytics/analytics_event.dart';
+import '../../models/challenge.dart';
 import '../../models/challenge_log.dart';
 
 @DataClassName('GoalRow')
 class Goals extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
+  TextColumn get domain => textEnum<ChallengeDomain>()();
   DateTimeColumn get deadline => dateTime()();
   IntColumn get startingLevel => integer()();
   IntColumn get weeklyQuota => integer()();

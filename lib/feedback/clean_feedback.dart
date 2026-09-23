@@ -11,6 +11,9 @@ class CleanFeedback {
 
   void tileTap() => Haptics.play(HapticMoment.tileTap);
 
+  /// Un défi est lancé.
+  void challengeAccepted() => Haptics.play(HapticMoment.challengeAccepted);
+
   /// Au moment où la tuile, enfoncée, quitte la grille.
   void tileCleaned(CleanCue cue) {
     sound.play(cue);

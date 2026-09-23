@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../engine/clock.dart';
 import 'lock_detector.dart';
 import 'timer_state.dart';
 
@@ -18,14 +19,14 @@ class LockedTimer {
   LockedTimer({
     required Duration target,
     required LockDetector detector,
-    DateTime Function()? clock,
+    Clock clock = const SystemClock(),
   }) : assert(target > Duration.zero, 'Un minuteur dure plus de zéro.'),
        _detector = detector,
-       _clock = clock ?? DateTime.now,
+       _clock = clock,
        _state = TimerState(phase: TimerPhase.ready, target: target);
 
   final LockDetector _detector;
-  final DateTime Function() _clock;
+  final Clock _clock;
   final StreamController<TimerState> _states =
       StreamController<TimerState>.broadcast();
   StreamSubscription<bool>? _lockSubscription;
@@ -38,7 +39,7 @@ class LockedTimer {
   Stream<TimerState> get states => _states.stream;
 
   /// Temps verrouillé cumulé, maintenant.
-  Duration get elapsed => _state.elapsedAt(_clock());
+  Duration get elapsed => _state.elapsedAt(_clock.now());
 
   /// Lance le minuteur. Il attend le verrouillage pour compter.
   void start() {
@@ -78,7 +79,7 @@ class LockedTimer {
   }
 
   void _onLockChanged(bool locked) {
-    final now = _clock();
+    final now = _clock.now();
     switch (_state.phase) {
       case TimerPhase.waitingForLock when locked:
         _emit(

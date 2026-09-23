@@ -263,9 +263,23 @@ Chaque tuile porte : un **titre court** (« Courir 5 km »), une **durée estim�
 **icône de contexte** (chez soi, dehors, n'importe où), et pour les défis à objectif un
 **rappel de l'objectif** (« → marathon, 3/3 cette semaine »).
 
-- **Tuiles à objectif** : plus grandes, bord violet, en haut de la grille. 1 à 2 par
-  jour.
-- **Tuiles d'opportunité** : plus petites, sans bord, en dessous. 2 à 3 par jour.
+**La taille d'une tuile est proportionnelle à la durée du défi.** Un défi d'une
+heure occupe un grand rectangle, un défi de dix minutes une petite case. On lit
+l'engagement que demande sa journée d'un seul coup d'œil, sans lire un chiffre.
+
+**La disposition change chaque jour.** Les formes et les positions ne sont jamais
+identiques deux jours de suite — c'est ce qui donne au bento son caractère de boîte
+composée plutôt que de liste. La grille se recompose autour des tailles du jour.
+
+Une contrainte, cependant : **au moins une tuile à objectif reste dans la rangée du
+haut**, quelle que soit la disposition. La variété doit surprendre, pas faire
+chercher.
+
+- **Tuiles à objectif** : bord violet, toujours au moins une visible en haut.
+  1 à 2 par jour.
+- **Tuiles d'opportunité** : sans bord. 2 à 3 par jour.
+- La distinction entre les deux passe donc par **le bord**, pas par la taille — la
+  taille appartient à la durée.
 - Une tuile déjà réussie aujourd'hui reste visible, cochée, jusqu'au lendemain.
 
 ### Les gestes
@@ -308,14 +322,24 @@ relance.
 | Activité à plusieurs | **QR régénéré toutes les 10 s**, scan mutuel, validation serveur dans une fenêtre courte | Un QR statique se photographie et ne prouve rien |
 | Cuisine, création, divers | Déclaratif, assumé comme tel | Ne rien promettre qu'on ne vérifie |
 
-### L'écran de défi en cours
+### Le défi en cours : un écran par mode de validation
 
-Plein écran, noir, une seule chose à l'écran : le temps qui passe ou l'activité en
-cours. **Aucune autre information, aucune navigation.** Pour un défi à minuteur, une
-consigne claire : « Pose ton téléphone. Il se verrouille, le compteur tourne. »
+**Il n'y a pas un écran de défi en cours, il y en a un par mode de validation.** Ils
+partagent la même enveloppe — le titre du défi, l'abandon en un tap, l'écran de
+réussite — mais ce qu'il y a au milieu n'a rien à voir.
 
-Si la personne déverrouille avant la fin, le compteur s'arrête. Message sobre, sans
-reproche : « Compteur arrêté à 12 minutes. On reprend ? »
+| Mode | Ce que voit la personne pendant le défi |
+| --- | --- |
+| **Minuteur** (lecture, travail, déconnexion) | Plein écran noir, le temps qui passe, rien d'autre, aucune navigation. Consigne : « Pose ton téléphone. Il se verrouille, le compteur tourne. » |
+| **Sport** (course, marche, vélo) | **Rien.** Le téléphone reste dans la poche, c'est tout l'intérêt. L'app affiche un état d'attente discret — « On t'attend au retour » — et lit l'activité dans Santé ensuite. Aucun suivi GPS dans Glyna. |
+| **Co-présence** (défi à plusieurs) | L'écran de scan : le QR de la personne, régénéré toutes les 10 s, et la caméra pour scanner celui d'en face. |
+| **Déclaratif** (cuisine, création) | Le contenu du défi lui-même — la recette, les étapes, la consigne — et un bouton « c'est fait » à la fin. |
+
+Pour le minuteur : si la personne déverrouille avant la fin, le compteur s'arrête.
+Message sobre, sans reproche : « Compteur arrêté à 12 minutes. On reprend ? »
+
+Pour le sport : le défi reste ouvert tant que l'activité n'a pas été détectée. Aucune
+relance, aucune limite de temps dans la journée. Glyna vérifie au retour, c'est tout.
 
 ### La réussite
 

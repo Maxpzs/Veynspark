@@ -2,11 +2,14 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:veynspark_v1/models/challenge.dart';
 import 'package:veynspark_v1/models/challenge_log.dart';
 import 'package:veynspark_v1/models/goal.dart';
 import 'package:veynspark_v1/models/week_quota.dart';
 import 'package:veynspark_v1/store/glyna_repository.dart';
 import 'package:veynspark_v1/store/local/glyna_database.dart';
+
+import 'support/legacy_schema.dart';
 
 void main() {
   late GlynaRepository repository;
@@ -14,6 +17,7 @@ void main() {
   final marathon = Goal(
     id: 'marathon',
     title: 'Marathon',
+    domain: ChallengeDomain.move,
     deadline: DateTime(2027, 3, 20),
     startingLevel: 1,
     weeklyQuota: 3,
@@ -21,6 +25,7 @@ void main() {
   final reading = Goal(
     id: 'reading',
     title: 'Finir Guerre et Paix',
+    domain: ChallengeDomain.read,
     deadline: DateTime(2026, 12, 31),
     startingLevel: 2,
     weeklyQuota: 5,
@@ -196,5 +201,97 @@ void main() {
         lastDay,
       ]);
     });
+
+    test('une grille écrite d’un coup se relit dans son ordre', () async {
+      final at = DateTime(2026, 9, 23, 10);
+      final grid = [
+        for (final id in ['run-5k', 'curry', 'ten-push-ups'])
+          ChallengeLog(
+            challengeId: id,
+            date: at,
+            status: ChallengeStatus.proposed,
+          ),
+      ];
+      await repository.addLogs(grid);
+      expect(await repository.logsBetween(monday, nextMonday), grid);
+    });
+
+    test('la lecture jusqu’à une date exclut cette date', () async {
+      final before = ChallengeLog(
+        challengeId: 'run-5k',
+        date: DateTime(2025, 1, 6, 8),
+        status: ChallengeStatus.succeeded,
+      );
+      final after = ChallengeLog(
+        challengeId: 'curry',
+        date: nextMonday,
+        status: ChallengeStatus.proposed,
+      );
+      await repository.addLogs([after, before]);
+      expect(await repository.logsBefore(nextMonday), [before]);
+    });
+  });
+
+  group('Réussites', () {
+    final success = ChallengeLog(
+      challengeId: 'run-5k',
+      date: DateTime(2026, 9, 23, 19),
+      status: ChallengeStatus.succeeded,
+    );
+
+    test('une réussite sans objectif ne touche à aucun quota', () async {
+      await repository.saveGoal(marathon);
+      await repository.addSuccess(success);
+      expect(await repository.logsFor('run-5k'), [success]);
+      expect(await repository.weekQuotas(monday), isEmpty);
+    });
+
+    test('la première réussite de la semaine crée le quota', () async {
+      await repository.saveGoal(marathon);
+      await repository.addSuccess(
+        success,
+        quota: WeekQuota(goalId: 'marathon', weekStart: monday, target: 3),
+      );
+      expect(
+        await repository.weekQuota('marathon', monday),
+        WeekQuota(goalId: 'marathon', weekStart: monday, target: 3, done: 1),
+      );
+    });
+
+    test('les suivantes incrémentent le quota existant', () async {
+      await repository.saveGoal(marathon);
+      await repository.saveWeekQuota(
+        WeekQuota(goalId: 'marathon', weekStart: monday, target: 4, done: 2),
+      );
+      await repository.addSuccess(
+        success,
+        quota: WeekQuota(goalId: 'marathon', weekStart: monday, target: 3),
+      );
+      expect(
+        await repository.weekQuota('marathon', monday),
+        WeekQuota(goalId: 'marathon', weekStart: monday, target: 4, done: 3),
+      );
+    });
+
+    test('si le quota ne peut pas s’écrire, la réussite non plus', () async {
+      await expectLater(
+        repository.addSuccess(
+          success,
+          quota: WeekQuota(goalId: 'inconnu', weekStart: monday, target: 3),
+        ),
+        throwsA(anything),
+      );
+      expect(await repository.logsFor('run-5k'), isEmpty);
+    });
+  });
+
+  test('une base de la version 2 gagne le domaine des objectifs', () async {
+    final upgraded = GlynaRepository(
+      GlynaDatabase(NativeDatabase.memory(setup: LegacySchema.at(2))),
+    );
+    addTearDown(upgraded.close);
+
+    await upgraded.saveGoal(reading);
+    expect(await upgraded.goal('reading'), reading);
   });
 }

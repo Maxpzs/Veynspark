@@ -1,12 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:veynspark_v1/content/challenge_library.dart';
 import 'package:veynspark_v1/engine/week_calendar.dart';
 import 'package:veynspark_v1/engine/week_plan.dart';
 import 'package:veynspark_v1/engine/week_service.dart';
 import 'package:veynspark_v1/engine/weekly_quota_rule.dart';
+import 'package:veynspark_v1/models/challenge.dart';
 import 'package:veynspark_v1/models/challenge_log.dart';
 import 'package:veynspark_v1/models/goal.dart';
 import 'package:veynspark_v1/models/week_quota.dart';
+
+import 'support/fake_clock.dart';
 
 void main() {
   // Semaine du lundi 21 au dimanche 27 septembre 2026.
@@ -18,6 +22,7 @@ void main() {
   final marathon = Goal(
     id: 'marathon',
     title: 'Marathon',
+    domain: ChallengeDomain.move,
     deadline: DateTime(2027, 3, 20),
     startingLevel: 1,
     weeklyQuota: 2,
@@ -25,12 +30,13 @@ void main() {
   final reading = Goal(
     id: 'reading',
     title: 'Finir Guerre et Paix',
+    domain: ChallengeDomain.read,
     deadline: DateTime(2026, 10, 10),
     startingLevel: 2,
     weeklyQuota: 3,
   );
 
-  WeekService serviceAt(DateTime now) => WeekService(clock: () => now);
+  WeekService serviceAt(DateTime now) => WeekService(clock: FakeClock(now));
 
   group('calendrier', () {
     test('la semaine commence le lundi à minuit', () {
@@ -274,6 +280,47 @@ void main() {
       );
       expect(review.goals.single.weeksLeft, 1);
       expect(review.nextWeek, isEmpty);
+    });
+  });
+
+  group('recompte des quotas', () {
+    const library = ChallengeLibrary.all;
+    Challenge first(ChallengeKind kind, ChallengeDomain domain) =>
+        library.firstWhere((c) => c.kind == kind && c.domain == domain);
+    ChallengeLog success(Challenge c, DateTime at) => ChallengeLog(
+      challengeId: c.id,
+      date: at,
+      status: ChallengeStatus.succeeded,
+    );
+
+    test('seules les réussites à objectif de la semaine comptent', () {
+      final run = first(ChallengeKind.goal, ChallengeDomain.move);
+      final book = first(ChallengeKind.goal, ChallengeDomain.read);
+      final curry = first(ChallengeKind.opportunity, ChallengeDomain.cook);
+      final quotas = serviceAt(DateTime(2026, 9, 23)).recount(
+        weekStart: monday,
+        goals: [marathon, reading],
+        quotas: [
+          WeekQuota(goalId: marathon.id, weekStart: monday, target: 4, done: 9),
+        ],
+        logs: [
+          success(run, DateTime(2026, 9, 21, 7)),
+          success(book, DateTime(2026, 9, 22, 21)),
+          success(book, DateTime(2026, 9, 20, 21)),
+          success(curry, DateTime(2026, 9, 22, 20)),
+        ],
+        library: library,
+      );
+
+      expect(quotas, [
+        WeekQuota(goalId: marathon.id, weekStart: monday, target: 4, done: 1),
+        WeekQuota(
+          goalId: reading.id,
+          weekStart: monday,
+          target: weeklyQuotaFor(reading, monday),
+          done: 1,
+        ),
+      ]);
     });
   });
 }

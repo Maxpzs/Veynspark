@@ -1,42 +1,10 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:veynspark_v1/validation/lock_detector.dart';
 import 'package:veynspark_v1/validation/locked_timer.dart';
 import 'package:veynspark_v1/validation/timer_state.dart';
 
-/// Détecteur simulé : l'état courant est émis dès l'abonnement, puis chaque
-/// changement, de façon synchrone.
-class FakeLockDetector implements LockDetector {
-  FakeLockDetector({bool locked = false}) : _locked = locked;
-
-  bool _locked;
-  late final StreamController<bool> _controller = StreamController.broadcast(
-    sync: true,
-    onListen: () => _controller.add(_locked),
-  );
-
-  bool get hasListener => _controller.hasListener;
-
-  @override
-  Stream<bool> get lockStates => _controller.stream;
-
-  void lock() => _set(true);
-  void unlock() => _set(false);
-
-  void _set(bool locked) {
-    _locked = locked;
-    _controller.add(locked);
-  }
-}
-
-/// Horloge simulée, avancée à la main.
-class FakeClock {
-  DateTime now = DateTime(2026, 9, 23, 21);
-
-  void advance(Duration duration) => now = now.add(duration);
-}
+import 'support/fake_clock.dart';
+import 'support/fake_lock_detector.dart';
 
 void main() {
   const target = Duration(minutes: 20);
@@ -45,13 +13,9 @@ void main() {
   late LockedTimer timer;
 
   setUp(() {
-    clock = FakeClock();
+    clock = FakeClock(DateTime(2026, 9, 23, 21));
     detector = FakeLockDetector();
-    timer = LockedTimer(
-      target: target,
-      detector: detector,
-      clock: () => clock.now,
-    );
+    timer = LockedTimer(target: target, detector: detector, clock: clock);
   });
 
   tearDown(() => timer.dispose());
@@ -77,11 +41,7 @@ void main() {
 
     test('compte tout de suite si l\'appareil est déjà verrouillé', () {
       detector = FakeLockDetector(locked: true);
-      timer = LockedTimer(
-        target: target,
-        detector: detector,
-        clock: () => clock.now,
-      );
+      timer = LockedTimer(target: target, detector: detector, clock: clock);
       timer.start();
       expect(timer.state.phase, TimerPhase.counting);
     });
@@ -94,7 +54,7 @@ void main() {
       clock.advance(const Duration(minutes: 7));
       expect(timer.state.phase, TimerPhase.counting);
       expect(timer.elapsed, const Duration(minutes: 7));
-      expect(timer.state.remainingAt(clock.now), const Duration(minutes: 13));
+      expect(timer.state.remainingAt(clock.now()), const Duration(minutes: 13));
     });
 
     test('jamais au-delà de la durée visée', () {

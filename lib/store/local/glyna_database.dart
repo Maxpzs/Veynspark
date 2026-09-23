@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
 import '../../analytics/analytics_event.dart';
+import '../../models/challenge.dart';
 import '../../models/challenge_log.dart';
 import 'tables.dart';
 
@@ -17,13 +18,26 @@ class GlynaDatabase extends _$GlynaDatabase {
   GlynaDatabase.onDevice() : super(driftDatabase(name: 'glyna'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (migrator, from, to) async {
       if (from < 2) {
         await migrator.createTable(analyticsEvents);
+      }
+      if (from < 3) {
+        // Aucune version antérieure n'écrit d'objectif : la table est vide, la
+        // valeur de remplissage ne sert qu'à satisfaire SQLite.
+        await migrator.alterTable(
+          TableMigration(
+            goals,
+            newColumns: [goals.domain],
+            columnTransformer: {
+              goals.domain: Constant(ChallengeDomain.move.name),
+            },
+          ),
+        );
       }
     },
     beforeOpen: (details) async {

@@ -30,6 +30,7 @@ void main() {
     goal: Goal(
       id: id,
       title: id,
+      domain: domain,
       deadline: DateTime(2027, 3, 20),
       startingLevel: startingLevel,
       weeklyQuota: target,

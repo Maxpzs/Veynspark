@@ -26,6 +26,15 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<ChallengeDomain, String> domain =
+      GeneratedColumn<String>(
+        'domain',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<ChallengeDomain>($GoalsTable.$converterdomain);
   static const VerificationMeta _deadlineMeta = const VerificationMeta(
     'deadline',
   );
@@ -63,6 +72,7 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
   List<GeneratedColumn> get $columns => [
     id,
     title,
+    domain,
     deadline,
     startingLevel,
     weeklyQuota,
@@ -139,6 +149,12 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
         DriftSqlType.string,
         data['${effectivePrefix}title'],
       )!,
+      domain: $GoalsTable.$converterdomain.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}domain'],
+        )!,
+      ),
       deadline: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}deadline'],
@@ -158,17 +174,22 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
   $GoalsTable createAlias(String alias) {
     return $GoalsTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<ChallengeDomain, String, String> $converterdomain =
+      const EnumNameConverter<ChallengeDomain>(ChallengeDomain.values);
 }
 
 class GoalRow extends DataClass implements Insertable<GoalRow> {
   final String id;
   final String title;
+  final ChallengeDomain domain;
   final DateTime deadline;
   final int startingLevel;
   final int weeklyQuota;
   const GoalRow({
     required this.id,
     required this.title,
+    required this.domain,
     required this.deadline,
     required this.startingLevel,
     required this.weeklyQuota,
@@ -178,6 +199,11 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['title'] = Variable<String>(title);
+    {
+      map['domain'] = Variable<String>(
+        $GoalsTable.$converterdomain.toSql(domain),
+      );
+    }
     map['deadline'] = Variable<DateTime>(deadline);
     map['starting_level'] = Variable<int>(startingLevel);
     map['weekly_quota'] = Variable<int>(weeklyQuota);
@@ -188,6 +214,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
     return GoalsCompanion(
       id: Value(id),
       title: Value(title),
+      domain: Value(domain),
       deadline: Value(deadline),
       startingLevel: Value(startingLevel),
       weeklyQuota: Value(weeklyQuota),
@@ -202,6 +229,9 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
     return GoalRow(
       id: serializer.fromJson<String>(json['id']),
       title: serializer.fromJson<String>(json['title']),
+      domain: $GoalsTable.$converterdomain.fromJson(
+        serializer.fromJson<String>(json['domain']),
+      ),
       deadline: serializer.fromJson<DateTime>(json['deadline']),
       startingLevel: serializer.fromJson<int>(json['startingLevel']),
       weeklyQuota: serializer.fromJson<int>(json['weeklyQuota']),
@@ -213,6 +243,9 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'title': serializer.toJson<String>(title),
+      'domain': serializer.toJson<String>(
+        $GoalsTable.$converterdomain.toJson(domain),
+      ),
       'deadline': serializer.toJson<DateTime>(deadline),
       'startingLevel': serializer.toJson<int>(startingLevel),
       'weeklyQuota': serializer.toJson<int>(weeklyQuota),
@@ -222,12 +255,14 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
   GoalRow copyWith({
     String? id,
     String? title,
+    ChallengeDomain? domain,
     DateTime? deadline,
     int? startingLevel,
     int? weeklyQuota,
   }) => GoalRow(
     id: id ?? this.id,
     title: title ?? this.title,
+    domain: domain ?? this.domain,
     deadline: deadline ?? this.deadline,
     startingLevel: startingLevel ?? this.startingLevel,
     weeklyQuota: weeklyQuota ?? this.weeklyQuota,
@@ -236,6 +271,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
     return GoalRow(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
+      domain: data.domain.present ? data.domain.value : this.domain,
       deadline: data.deadline.present ? data.deadline.value : this.deadline,
       startingLevel: data.startingLevel.present
           ? data.startingLevel.value
@@ -251,6 +287,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
     return (StringBuffer('GoalRow(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('domain: $domain, ')
           ..write('deadline: $deadline, ')
           ..write('startingLevel: $startingLevel, ')
           ..write('weeklyQuota: $weeklyQuota')
@@ -260,13 +297,14 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
 
   @override
   int get hashCode =>
-      Object.hash(id, title, deadline, startingLevel, weeklyQuota);
+      Object.hash(id, title, domain, deadline, startingLevel, weeklyQuota);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is GoalRow &&
           other.id == this.id &&
           other.title == this.title &&
+          other.domain == this.domain &&
           other.deadline == this.deadline &&
           other.startingLevel == this.startingLevel &&
           other.weeklyQuota == this.weeklyQuota);
@@ -275,6 +313,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
 class GoalsCompanion extends UpdateCompanion<GoalRow> {
   final Value<String> id;
   final Value<String> title;
+  final Value<ChallengeDomain> domain;
   final Value<DateTime> deadline;
   final Value<int> startingLevel;
   final Value<int> weeklyQuota;
@@ -282,6 +321,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
   const GoalsCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
+    this.domain = const Value.absent(),
     this.deadline = const Value.absent(),
     this.startingLevel = const Value.absent(),
     this.weeklyQuota = const Value.absent(),
@@ -290,18 +330,21 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
   GoalsCompanion.insert({
     required String id,
     required String title,
+    required ChallengeDomain domain,
     required DateTime deadline,
     required int startingLevel,
     required int weeklyQuota,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        title = Value(title),
+       domain = Value(domain),
        deadline = Value(deadline),
        startingLevel = Value(startingLevel),
        weeklyQuota = Value(weeklyQuota);
   static Insertable<GoalRow> custom({
     Expression<String>? id,
     Expression<String>? title,
+    Expression<String>? domain,
     Expression<DateTime>? deadline,
     Expression<int>? startingLevel,
     Expression<int>? weeklyQuota,
@@ -310,6 +353,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (title != null) 'title': title,
+      if (domain != null) 'domain': domain,
       if (deadline != null) 'deadline': deadline,
       if (startingLevel != null) 'starting_level': startingLevel,
       if (weeklyQuota != null) 'weekly_quota': weeklyQuota,
@@ -320,6 +364,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
   GoalsCompanion copyWith({
     Value<String>? id,
     Value<String>? title,
+    Value<ChallengeDomain>? domain,
     Value<DateTime>? deadline,
     Value<int>? startingLevel,
     Value<int>? weeklyQuota,
@@ -328,6 +373,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
     return GoalsCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
+      domain: domain ?? this.domain,
       deadline: deadline ?? this.deadline,
       startingLevel: startingLevel ?? this.startingLevel,
       weeklyQuota: weeklyQuota ?? this.weeklyQuota,
@@ -343,6 +389,11 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
+    }
+    if (domain.present) {
+      map['domain'] = Variable<String>(
+        $GoalsTable.$converterdomain.toSql(domain.value),
+      );
     }
     if (deadline.present) {
       map['deadline'] = Variable<DateTime>(deadline.value);
@@ -364,6 +415,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
     return (StringBuffer('GoalsCompanion(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('domain: $domain, ')
           ..write('deadline: $deadline, ')
           ..write('startingLevel: $startingLevel, ')
           ..write('weeklyQuota: $weeklyQuota, ')
@@ -1523,6 +1575,7 @@ typedef $$GoalsTableCreateCompanionBuilder =
     GoalsCompanion Function({
       required String id,
       required String title,
+      required ChallengeDomain domain,
       required DateTime deadline,
       required int startingLevel,
       required int weeklyQuota,
@@ -1532,6 +1585,7 @@ typedef $$GoalsTableUpdateCompanionBuilder =
     GoalsCompanion Function({
       Value<String> id,
       Value<String> title,
+      Value<ChallengeDomain> domain,
       Value<DateTime> deadline,
       Value<int> startingLevel,
       Value<int> weeklyQuota,
@@ -1578,6 +1632,12 @@ class $$GoalsTableFilterComposer
   ColumnFilters<String> get title => $composableBuilder(
     column: $table.title,
     builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ChallengeDomain, ChallengeDomain, String>
+  get domain => $composableBuilder(
+    column: $table.domain,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
   ColumnFilters<DateTime> get deadline => $composableBuilder(
@@ -1640,6 +1700,11 @@ class $$GoalsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get domain => $composableBuilder(
+    column: $table.domain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get deadline => $composableBuilder(
     column: $table.deadline,
     builder: (column) => ColumnOrderings(column),
@@ -1670,6 +1735,9 @@ class $$GoalsTableAnnotationComposer
 
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<ChallengeDomain, String> get domain =>
+      $composableBuilder(column: $table.domain, builder: (column) => column);
 
   GeneratedColumn<DateTime> get deadline =>
       $composableBuilder(column: $table.deadline, builder: (column) => column);
@@ -1740,6 +1808,7 @@ class $$GoalsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> title = const Value.absent(),
+                Value<ChallengeDomain> domain = const Value.absent(),
                 Value<DateTime> deadline = const Value.absent(),
                 Value<int> startingLevel = const Value.absent(),
                 Value<int> weeklyQuota = const Value.absent(),
@@ -1747,6 +1816,7 @@ class $$GoalsTableTableManager
               }) => GoalsCompanion(
                 id: id,
                 title: title,
+                domain: domain,
                 deadline: deadline,
                 startingLevel: startingLevel,
                 weeklyQuota: weeklyQuota,
@@ -1756,6 +1826,7 @@ class $$GoalsTableTableManager
               ({
                 required String id,
                 required String title,
+                required ChallengeDomain domain,
                 required DateTime deadline,
                 required int startingLevel,
                 required int weeklyQuota,
@@ -1763,6 +1834,7 @@ class $$GoalsTableTableManager
               }) => GoalsCompanion.insert(
                 id: id,
                 title: title,
+                domain: domain,
                 deadline: deadline,
                 startingLevel: startingLevel,
                 weeklyQuota: weeklyQuota,
