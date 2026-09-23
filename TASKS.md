@@ -43,7 +43,7 @@ Ne jamais toucher à `lib/theme/`, sauf si la tâche le demande explicitement.
   leçons. Un test qui vérifie qu'aucun champ obligatoire n'est vide et qu'il existe
   au moins un défi faisable dans chaque contexte.
 
-- [ ] **3. Persistance locale.** Mettre en place `drift` (ou `sqflite` si `drift`
+- [x] **3. Persistance locale.** Mettre en place `drift` (ou `sqflite` si `drift`
   pose problème, en le notant dans `QUESTIONS.md`). Tables pour les objectifs, les
   quotas hebdomadaires et le journal des défis. Une couche `Repository` qui expose
   des méthodes simples de lecture et d'écriture, sans que le reste de l'app ne

@@ -1,0 +1,8 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Garde les millisecondes et le fuseau : une date relue est égale à
+          # la date écrite.
+          store_date_time_values_as_text: true
