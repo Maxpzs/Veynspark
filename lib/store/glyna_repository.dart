@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../analytics/analytics_event.dart';
 import '../models/challenge_log.dart';
 import '../models/goal.dart';
 import '../models/week_quota.dart';
@@ -129,6 +130,38 @@ class GlynaRepository {
     return rows.map(_logFromRow).toList();
   }
 
+  // Mesure
+
+  Future<void> addEvent(AnalyticsEvent event) => _db
+      .into(_db.analyticsEvents)
+      .insert(
+        AnalyticsEventsCompanion.insert(
+          type: event.type,
+          at: event.at,
+          challengeId: Value(event.challengeId),
+          onboardingStep: Value(event.onboardingStep),
+          feedPostId: Value(event.feedPostId),
+        ),
+      );
+
+  /// Les événements datés de [from] inclus à [to] exclu, dans l'ordre où ils
+  /// ont été écrits.
+  Future<List<AnalyticsEvent>> eventsBetween(DateTime from, DateTime to) async {
+    final rows =
+        await (_db.select(_db.analyticsEvents)
+              ..where(
+                (e) =>
+                    e.at.isBiggerOrEqualValue(from) &
+                    e.at.isSmallerThanValue(to),
+              )
+              ..orderBy([
+                (e) => OrderingTerm.asc(e.at),
+                (e) => OrderingTerm.asc(e.id),
+              ]))
+            .get();
+    return rows.map(_eventFromRow).toList();
+  }
+
   static Goal _goalFromRow(GoalRow row) => Goal(
     id: row.id,
     title: row.title,
@@ -149,5 +182,13 @@ class GlynaRepository {
     date: row.date,
     status: row.status,
     postponeReason: row.postponeReason,
+  );
+
+  static AnalyticsEvent _eventFromRow(AnalyticsEventRow row) => AnalyticsEvent(
+    type: row.type,
+    at: row.at,
+    challengeId: row.challengeId,
+    onboardingStep: row.onboardingStep,
+    feedPostId: row.feedPostId,
   );
 }

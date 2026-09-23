@@ -1064,12 +1064,436 @@ class ChallengeLogsCompanion extends UpdateCompanion<ChallengeLogRow> {
   }
 }
 
+class $AnalyticsEventsTable extends AnalyticsEvents
+    with TableInfo<$AnalyticsEventsTable, AnalyticsEventRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AnalyticsEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<AnalyticsEventType, String> type =
+      GeneratedColumn<String>(
+        'type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<AnalyticsEventType>($AnalyticsEventsTable.$convertertype);
+  static const VerificationMeta _atMeta = const VerificationMeta('at');
+  @override
+  late final GeneratedColumn<DateTime> at = GeneratedColumn<DateTime>(
+    'at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _challengeIdMeta = const VerificationMeta(
+    'challengeId',
+  );
+  @override
+  late final GeneratedColumn<String> challengeId = GeneratedColumn<String>(
+    'challenge_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _onboardingStepMeta = const VerificationMeta(
+    'onboardingStep',
+  );
+  @override
+  late final GeneratedColumn<int> onboardingStep = GeneratedColumn<int>(
+    'onboarding_step',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _feedPostIdMeta = const VerificationMeta(
+    'feedPostId',
+  );
+  @override
+  late final GeneratedColumn<String> feedPostId = GeneratedColumn<String>(
+    'feed_post_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    type,
+    at,
+    challengeId,
+    onboardingStep,
+    feedPostId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'analytics_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AnalyticsEventRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('at')) {
+      context.handle(_atMeta, at.isAcceptableOrUnknown(data['at']!, _atMeta));
+    } else if (isInserting) {
+      context.missing(_atMeta);
+    }
+    if (data.containsKey('challenge_id')) {
+      context.handle(
+        _challengeIdMeta,
+        challengeId.isAcceptableOrUnknown(
+          data['challenge_id']!,
+          _challengeIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('onboarding_step')) {
+      context.handle(
+        _onboardingStepMeta,
+        onboardingStep.isAcceptableOrUnknown(
+          data['onboarding_step']!,
+          _onboardingStepMeta,
+        ),
+      );
+    }
+    if (data.containsKey('feed_post_id')) {
+      context.handle(
+        _feedPostIdMeta,
+        feedPostId.isAcceptableOrUnknown(
+          data['feed_post_id']!,
+          _feedPostIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AnalyticsEventRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AnalyticsEventRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      type: $AnalyticsEventsTable.$convertertype.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}type'],
+        )!,
+      ),
+      at: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}at'],
+      )!,
+      challengeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}challenge_id'],
+      ),
+      onboardingStep: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}onboarding_step'],
+      ),
+      feedPostId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}feed_post_id'],
+      ),
+    );
+  }
+
+  @override
+  $AnalyticsEventsTable createAlias(String alias) {
+    return $AnalyticsEventsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<AnalyticsEventType, String, String> $convertertype =
+      const EnumNameConverter<AnalyticsEventType>(AnalyticsEventType.values);
+}
+
+class AnalyticsEventRow extends DataClass
+    implements Insertable<AnalyticsEventRow> {
+  final int id;
+  final AnalyticsEventType type;
+  final DateTime at;
+  final String? challengeId;
+  final int? onboardingStep;
+  final String? feedPostId;
+  const AnalyticsEventRow({
+    required this.id,
+    required this.type,
+    required this.at,
+    this.challengeId,
+    this.onboardingStep,
+    this.feedPostId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    {
+      map['type'] = Variable<String>(
+        $AnalyticsEventsTable.$convertertype.toSql(type),
+      );
+    }
+    map['at'] = Variable<DateTime>(at);
+    if (!nullToAbsent || challengeId != null) {
+      map['challenge_id'] = Variable<String>(challengeId);
+    }
+    if (!nullToAbsent || onboardingStep != null) {
+      map['onboarding_step'] = Variable<int>(onboardingStep);
+    }
+    if (!nullToAbsent || feedPostId != null) {
+      map['feed_post_id'] = Variable<String>(feedPostId);
+    }
+    return map;
+  }
+
+  AnalyticsEventsCompanion toCompanion(bool nullToAbsent) {
+    return AnalyticsEventsCompanion(
+      id: Value(id),
+      type: Value(type),
+      at: Value(at),
+      challengeId: challengeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(challengeId),
+      onboardingStep: onboardingStep == null && nullToAbsent
+          ? const Value.absent()
+          : Value(onboardingStep),
+      feedPostId: feedPostId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(feedPostId),
+    );
+  }
+
+  factory AnalyticsEventRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AnalyticsEventRow(
+      id: serializer.fromJson<int>(json['id']),
+      type: $AnalyticsEventsTable.$convertertype.fromJson(
+        serializer.fromJson<String>(json['type']),
+      ),
+      at: serializer.fromJson<DateTime>(json['at']),
+      challengeId: serializer.fromJson<String?>(json['challengeId']),
+      onboardingStep: serializer.fromJson<int?>(json['onboardingStep']),
+      feedPostId: serializer.fromJson<String?>(json['feedPostId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'type': serializer.toJson<String>(
+        $AnalyticsEventsTable.$convertertype.toJson(type),
+      ),
+      'at': serializer.toJson<DateTime>(at),
+      'challengeId': serializer.toJson<String?>(challengeId),
+      'onboardingStep': serializer.toJson<int?>(onboardingStep),
+      'feedPostId': serializer.toJson<String?>(feedPostId),
+    };
+  }
+
+  AnalyticsEventRow copyWith({
+    int? id,
+    AnalyticsEventType? type,
+    DateTime? at,
+    Value<String?> challengeId = const Value.absent(),
+    Value<int?> onboardingStep = const Value.absent(),
+    Value<String?> feedPostId = const Value.absent(),
+  }) => AnalyticsEventRow(
+    id: id ?? this.id,
+    type: type ?? this.type,
+    at: at ?? this.at,
+    challengeId: challengeId.present ? challengeId.value : this.challengeId,
+    onboardingStep: onboardingStep.present
+        ? onboardingStep.value
+        : this.onboardingStep,
+    feedPostId: feedPostId.present ? feedPostId.value : this.feedPostId,
+  );
+  AnalyticsEventRow copyWithCompanion(AnalyticsEventsCompanion data) {
+    return AnalyticsEventRow(
+      id: data.id.present ? data.id.value : this.id,
+      type: data.type.present ? data.type.value : this.type,
+      at: data.at.present ? data.at.value : this.at,
+      challengeId: data.challengeId.present
+          ? data.challengeId.value
+          : this.challengeId,
+      onboardingStep: data.onboardingStep.present
+          ? data.onboardingStep.value
+          : this.onboardingStep,
+      feedPostId: data.feedPostId.present
+          ? data.feedPostId.value
+          : this.feedPostId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AnalyticsEventRow(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('at: $at, ')
+          ..write('challengeId: $challengeId, ')
+          ..write('onboardingStep: $onboardingStep, ')
+          ..write('feedPostId: $feedPostId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, type, at, challengeId, onboardingStep, feedPostId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AnalyticsEventRow &&
+          other.id == this.id &&
+          other.type == this.type &&
+          other.at == this.at &&
+          other.challengeId == this.challengeId &&
+          other.onboardingStep == this.onboardingStep &&
+          other.feedPostId == this.feedPostId);
+}
+
+class AnalyticsEventsCompanion extends UpdateCompanion<AnalyticsEventRow> {
+  final Value<int> id;
+  final Value<AnalyticsEventType> type;
+  final Value<DateTime> at;
+  final Value<String?> challengeId;
+  final Value<int?> onboardingStep;
+  final Value<String?> feedPostId;
+  const AnalyticsEventsCompanion({
+    this.id = const Value.absent(),
+    this.type = const Value.absent(),
+    this.at = const Value.absent(),
+    this.challengeId = const Value.absent(),
+    this.onboardingStep = const Value.absent(),
+    this.feedPostId = const Value.absent(),
+  });
+  AnalyticsEventsCompanion.insert({
+    this.id = const Value.absent(),
+    required AnalyticsEventType type,
+    required DateTime at,
+    this.challengeId = const Value.absent(),
+    this.onboardingStep = const Value.absent(),
+    this.feedPostId = const Value.absent(),
+  }) : type = Value(type),
+       at = Value(at);
+  static Insertable<AnalyticsEventRow> custom({
+    Expression<int>? id,
+    Expression<String>? type,
+    Expression<DateTime>? at,
+    Expression<String>? challengeId,
+    Expression<int>? onboardingStep,
+    Expression<String>? feedPostId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (type != null) 'type': type,
+      if (at != null) 'at': at,
+      if (challengeId != null) 'challenge_id': challengeId,
+      if (onboardingStep != null) 'onboarding_step': onboardingStep,
+      if (feedPostId != null) 'feed_post_id': feedPostId,
+    });
+  }
+
+  AnalyticsEventsCompanion copyWith({
+    Value<int>? id,
+    Value<AnalyticsEventType>? type,
+    Value<DateTime>? at,
+    Value<String?>? challengeId,
+    Value<int?>? onboardingStep,
+    Value<String?>? feedPostId,
+  }) {
+    return AnalyticsEventsCompanion(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      at: at ?? this.at,
+      challengeId: challengeId ?? this.challengeId,
+      onboardingStep: onboardingStep ?? this.onboardingStep,
+      feedPostId: feedPostId ?? this.feedPostId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(
+        $AnalyticsEventsTable.$convertertype.toSql(type.value),
+      );
+    }
+    if (at.present) {
+      map['at'] = Variable<DateTime>(at.value);
+    }
+    if (challengeId.present) {
+      map['challenge_id'] = Variable<String>(challengeId.value);
+    }
+    if (onboardingStep.present) {
+      map['onboarding_step'] = Variable<int>(onboardingStep.value);
+    }
+    if (feedPostId.present) {
+      map['feed_post_id'] = Variable<String>(feedPostId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AnalyticsEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('at: $at, ')
+          ..write('challengeId: $challengeId, ')
+          ..write('onboardingStep: $onboardingStep, ')
+          ..write('feedPostId: $feedPostId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$GlynaDatabase extends GeneratedDatabase {
   _$GlynaDatabase(QueryExecutor e) : super(e);
   $GlynaDatabaseManager get managers => $GlynaDatabaseManager(this);
   late final $GoalsTable goals = $GoalsTable(this);
   late final $WeekQuotasTable weekQuotas = $WeekQuotasTable(this);
   late final $ChallengeLogsTable challengeLogs = $ChallengeLogsTable(this);
+  late final $AnalyticsEventsTable analyticsEvents = $AnalyticsEventsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1078,6 +1502,7 @@ abstract class _$GlynaDatabase extends GeneratedDatabase {
     goals,
     weekQuotas,
     challengeLogs,
+    analyticsEvents,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -1899,6 +2324,236 @@ typedef $$ChallengeLogsTableProcessedTableManager =
       ChallengeLogRow,
       PrefetchHooks Function()
     >;
+typedef $$AnalyticsEventsTableCreateCompanionBuilder =
+    AnalyticsEventsCompanion Function({
+      Value<int> id,
+      required AnalyticsEventType type,
+      required DateTime at,
+      Value<String?> challengeId,
+      Value<int?> onboardingStep,
+      Value<String?> feedPostId,
+    });
+typedef $$AnalyticsEventsTableUpdateCompanionBuilder =
+    AnalyticsEventsCompanion Function({
+      Value<int> id,
+      Value<AnalyticsEventType> type,
+      Value<DateTime> at,
+      Value<String?> challengeId,
+      Value<int?> onboardingStep,
+      Value<String?> feedPostId,
+    });
+
+class $$AnalyticsEventsTableFilterComposer
+    extends Composer<_$GlynaDatabase, $AnalyticsEventsTable> {
+  $$AnalyticsEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<AnalyticsEventType, AnalyticsEventType, String>
+  get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<DateTime> get at => $composableBuilder(
+    column: $table.at,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get challengeId => $composableBuilder(
+    column: $table.challengeId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get onboardingStep => $composableBuilder(
+    column: $table.onboardingStep,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get feedPostId => $composableBuilder(
+    column: $table.feedPostId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AnalyticsEventsTableOrderingComposer
+    extends Composer<_$GlynaDatabase, $AnalyticsEventsTable> {
+  $$AnalyticsEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get at => $composableBuilder(
+    column: $table.at,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get challengeId => $composableBuilder(
+    column: $table.challengeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get onboardingStep => $composableBuilder(
+    column: $table.onboardingStep,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get feedPostId => $composableBuilder(
+    column: $table.feedPostId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AnalyticsEventsTableAnnotationComposer
+    extends Composer<_$GlynaDatabase, $AnalyticsEventsTable> {
+  $$AnalyticsEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<AnalyticsEventType, String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get at =>
+      $composableBuilder(column: $table.at, builder: (column) => column);
+
+  GeneratedColumn<String> get challengeId => $composableBuilder(
+    column: $table.challengeId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get onboardingStep => $composableBuilder(
+    column: $table.onboardingStep,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get feedPostId => $composableBuilder(
+    column: $table.feedPostId,
+    builder: (column) => column,
+  );
+}
+
+class $$AnalyticsEventsTableTableManager
+    extends
+        RootTableManager<
+          _$GlynaDatabase,
+          $AnalyticsEventsTable,
+          AnalyticsEventRow,
+          $$AnalyticsEventsTableFilterComposer,
+          $$AnalyticsEventsTableOrderingComposer,
+          $$AnalyticsEventsTableAnnotationComposer,
+          $$AnalyticsEventsTableCreateCompanionBuilder,
+          $$AnalyticsEventsTableUpdateCompanionBuilder,
+          (
+            AnalyticsEventRow,
+            BaseReferences<
+              _$GlynaDatabase,
+              $AnalyticsEventsTable,
+              AnalyticsEventRow
+            >,
+          ),
+          AnalyticsEventRow,
+          PrefetchHooks Function()
+        > {
+  $$AnalyticsEventsTableTableManager(
+    _$GlynaDatabase db,
+    $AnalyticsEventsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AnalyticsEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AnalyticsEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AnalyticsEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<AnalyticsEventType> type = const Value.absent(),
+                Value<DateTime> at = const Value.absent(),
+                Value<String?> challengeId = const Value.absent(),
+                Value<int?> onboardingStep = const Value.absent(),
+                Value<String?> feedPostId = const Value.absent(),
+              }) => AnalyticsEventsCompanion(
+                id: id,
+                type: type,
+                at: at,
+                challengeId: challengeId,
+                onboardingStep: onboardingStep,
+                feedPostId: feedPostId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required AnalyticsEventType type,
+                required DateTime at,
+                Value<String?> challengeId = const Value.absent(),
+                Value<int?> onboardingStep = const Value.absent(),
+                Value<String?> feedPostId = const Value.absent(),
+              }) => AnalyticsEventsCompanion.insert(
+                id: id,
+                type: type,
+                at: at,
+                challengeId: challengeId,
+                onboardingStep: onboardingStep,
+                feedPostId: feedPostId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AnalyticsEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$GlynaDatabase,
+      $AnalyticsEventsTable,
+      AnalyticsEventRow,
+      $$AnalyticsEventsTableFilterComposer,
+      $$AnalyticsEventsTableOrderingComposer,
+      $$AnalyticsEventsTableAnnotationComposer,
+      $$AnalyticsEventsTableCreateCompanionBuilder,
+      $$AnalyticsEventsTableUpdateCompanionBuilder,
+      (
+        AnalyticsEventRow,
+        BaseReferences<
+          _$GlynaDatabase,
+          $AnalyticsEventsTable,
+          AnalyticsEventRow
+        >,
+      ),
+      AnalyticsEventRow,
+      PrefetchHooks Function()
+    >;
 
 class $GlynaDatabaseManager {
   final _$GlynaDatabase _db;
@@ -1909,4 +2564,6 @@ class $GlynaDatabaseManager {
       $$WeekQuotasTableTableManager(_db, _db.weekQuotas);
   $$ChallengeLogsTableTableManager get challengeLogs =>
       $$ChallengeLogsTableTableManager(_db, _db.challengeLogs);
+  $$AnalyticsEventsTableTableManager get analyticsEvents =>
+      $$AnalyticsEventsTableTableManager(_db, _db.analyticsEvents);
 }

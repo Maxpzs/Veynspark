@@ -102,3 +102,23 @@
 - **Persistance.** L'état du minuteur n'est pas sauvegardé : si le système tue
   l'app pendant le verrouillage, le défi est perdu. À traiter quand l'écran de
   défi en cours sera construit ?
+
+## Tâche 8 — Mesure
+
+- **Branchement.** L'interface `Analytics` et `LocalAnalytics` existent, mais
+  aucun écran ne les appelle encore (pas d'état global ni d'onboarding à ce
+  stade). À brancher avec `flutter_riverpod` quand il sera installé ?
+- **Calcul des indicateurs.** Seuls les événements bruts sont enregistrés :
+  rétention J1/J7/J30 et ratio quotidiens/mensuels se déduisent des jours avec
+  `appOpened`, mais aucune fonction ne les calcule encore. Et sans aucun envoi
+  hors de l'appareil, ces chiffres ne sont lisibles que sur le téléphone de la
+  personne : comment compte-t-on les consulter à l'échelle de tous les
+  utilisateurs ? Une remontée agrégée et anonyme, avec consentement, est une
+  décision à prendre.
+- **Raison de report.** `challengePostponed` ne porte pas la raison, déjà
+  présente dans `ChallengeLog`. À ajouter si la mesure doit être autonome.
+- **« Rien ne me va » et balayage.** Ni le rafraîchissement de la grille ni le
+  remplacement d'une tuile ne sont mesurés : le brief ne les liste pas.
+  Faut-il les compter comme des refus ?
+- **Durée de rétention.** Les événements s'accumulent sans limite. Faut-il
+  purger au-delà de 30 ou 60 jours, et les inclure dans l'export de données ?

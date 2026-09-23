@@ -75,7 +75,7 @@ Ne jamais toucher à `lib/theme/`, sauf si la tâche le demande explicitement.
   que l'appareil est verrouillé. Exposer un flux d'état que l'interface pourra
   écouter plus tard. Tests avec une horloge et un détecteur de verrouillage simulés.
 
-- [ ] **8. Mesure.** Dans `lib/analytics/`, une interface de journalisation des
+- [x] **8. Mesure.** Dans `lib/analytics/`, une interface de journalisation des
   événements listés dans la section « La mesure » du brief, avec une implémentation
   locale qui écrit en base. Aucun service tiers, aucune donnée qui sort de
   l'appareil. Tests sur l'enregistrement et la relecture des événements.

@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../analytics/analytics_event.dart';
 import '../../models/challenge_log.dart';
 
 @DataClassName('GoalRow')
@@ -37,4 +38,15 @@ class ChallengeLogs extends Table {
   DateTimeColumn get date => dateTime()();
   TextColumn get status => textEnum<ChallengeStatus>()();
   TextColumn get postponeReason => textEnum<PostponeReason>().nullable()();
+}
+
+/// Événements de mesure, en ajout seul. Restent sur l'appareil.
+@DataClassName('AnalyticsEventRow')
+class AnalyticsEvents extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get type => textEnum<AnalyticsEventType>()();
+  DateTimeColumn get at => dateTime()();
+  TextColumn get challengeId => text().nullable()();
+  IntColumn get onboardingStep => integer().nullable()();
+  TextColumn get feedPostId => text().nullable()();
 }
