@@ -34,7 +34,7 @@ Ne jamais toucher à `lib/theme/`, sauf si la tâche le demande explicitement.
   unitaires de la sérialisation aller-retour pour chaque modèle. Vérifier que
   l'écran du bento compile toujours après la modification.
 
-- [ ] **2. Bibliothèque de défis.** Écrire dans `lib/content/` **60 défis** en
+- [x] **2. Bibliothèque de défis.** Écrire dans `lib/content/` **60 défis** en
   français, répartis sur les domaines du brief : bouger, lire, cuisiner, créer,
   apprendre, voir des gens. Pour chacun, tous les champs du modèle `Challenge`.
   Respecter la répartition entre défis à objectif et défis d'opportunité, et les
