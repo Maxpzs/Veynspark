@@ -60,3 +60,22 @@
 - **Tuile dehors la nuit.** La règle « au moins une tuile faisable dehors » est
   appliquée à toute heure, y compris à 23 h, et aucune opportunité dehors ne dure
   moins de 15 min. Faut-il l'assouplir la nuit ?
+
+## Tâche 6 — Réduction après report
+
+- **Ce qu'est une « version réduite ».** Le brief donne « On le réduit à 3 km ? »,
+  mais la bibliothèque n'a pas de variante de chaque défi. J'ai pris un autre
+  défi de la bibliothèque : même domaine, même nature, niveau inférieur le plus
+  proche, puis même mode de validation, puis le plus court (« Courir 5 km » →
+  « Courir 2 km »). Aucun défi de niveau 1 n'a donc de version réduite. Faut-il
+  plutôt une variante réduite écrite à la main par défi (champ dédié) ?
+- **« Jamais répétée » : dans la semaine ou pour toujours ?** J'ai pris « pour
+  toujours » : le registre (`ReductionLedger`) garde les défis déjà concernés
+  d'une semaine à l'autre. Il n'est pas encore persisté ; il est sérialisable
+  en JSON en attendant de savoir s'il va en base.
+- **Réduction en chaîne.** Si la version réduite acceptée est à son tour
+  déplacée trois fois, c'est un autre défi : une nouvelle proposition peut
+  tomber. À confirmer.
+- **Exclusion.** La version réduite n'est jamais un défi déjà posé dans le
+  `WeekPlan` de la semaine. Le journal n'est pas consulté : un défi réussi
+  cette semaine mais absent du plan pourrait être proposé.

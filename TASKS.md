@@ -64,7 +64,7 @@ Ne jamais toucher à `lib/theme/`, sauf si la tâche le demande explicitement.
   dehors et une faisable partout, jamais deux fois le même défi dans la semaine, le
   quota restant d'un objectif proche de son échéance fait remonter ses défis.
 
-- [ ] **6. Réduction après report.** Étendre le moteur : au troisième déplacement
+- [x] **6. Réduction après report.** Étendre le moteur : au troisième déplacement
   d'un même défi, produire une proposition de version réduite du défi. Proposée une
   seule fois, jamais répétée, et refusable sans conséquence. Tests sur le compteur
   de reports et sur la non-répétition.

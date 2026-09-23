@@ -95,6 +95,25 @@ class WeekPlan {
     );
   }
 
+  /// Remplace [challengeId] par [replacementId], sur le même jour. Le
+  /// remplaçant part sans aucun déplacement compté.
+  WeekPlan replace(String challengeId, String replacementId) {
+    final day = _days[challengeId];
+    if (day == null) {
+      throw ArgumentError.value(challengeId, 'challengeId', 'pas posé');
+    }
+    if (_days.containsKey(replacementId)) {
+      throw ArgumentError.value(replacementId, 'replacementId', 'déjà posé');
+    }
+    return WeekPlan._(weekStart, {
+      for (final entry in _days.entries)
+        if (entry.key == challengeId)
+          replacementId: day
+        else
+          entry.key: entry.value,
+    }, {..._moves}..remove(challengeId));
+  }
+
   @override
   bool operator ==(Object other) =>
       other is WeekPlan &&
