@@ -31,3 +31,32 @@
   compteur à partir des réussites ?
 - **Déplacement vers un jour déjà passé.** Autorisé, puisque le brief ne pose
   aucun verrou dans la semaine. À confirmer.
+
+## Tâche 5 — Moteur de proposition, version 1
+
+- **Lien objectif → défis.** `Goal` ne porte pas de domaine : le moteur ne sait
+  pas quels défis font avancer quel objectif. J'ai ajouté côté moteur un
+  `GoalTrack` (objectif + domaine + semaine en cours) que l'appelant construit,
+  sans toucher au modèle. Faut-il plutôt ajouter un `domain` (ou une
+  progression) à `Goal` ?
+- **Quota contre « jamais deux fois dans la semaine ».** Chaque domaine n'a que
+  4 défis à objectif, alors qu'un quota peut monter à 5. Une fois les 4 proposés
+  dans la semaine, l'objectif n'a plus de tuile : le moteur ne reprend jamais un
+  défi, et complète avec des opportunités. « Courir 5 km » trois fois dans la
+  semaine est pourtant naturel. La règle vise-t-elle aussi les défis à objectif,
+  ou seulement les opportunités ? Sinon, il faut plus de défis à objectif par
+  domaine.
+- **« Proposé » dans la semaine.** Tout défi présent dans le journal de la
+  semaine, quel que soit son état, est exclu. Le bento du jour doit donc être
+  persisté une fois tiré, et « Rien ne me va » tirera naturellement une autre
+  grille. À confirmer.
+- **Règles chiffrées, toutes arbitraires.** Niveau : +1 toutes les 3 réussites
+  dans le domaine, −1 par report « trop dur », borné 1–3. Défi « court » : 15 min
+  ou moins, privilégié la nuit (22 h–5 h), hors des créneaux libres déclarés, ou
+  après 2 reports « pas le bon moment » sur 14 jours. « Pas envie » pénalise le
+  défi concerné pendant 14 jours. Deux tuiles à objectif seulement si deux
+  objectifs sont en retard sur leur quota. Moments de la journée : matin 5–12 h,
+  après-midi 12–18 h, soir 18–22 h, nuit 22–5 h.
+- **Tuile dehors la nuit.** La règle « au moins une tuile faisable dehors » est
+  appliquée à toute heure, y compris à 23 h, et aucune opportunité dehors ne dure
+  moins de 15 min. Faut-il l'assouplir la nuit ?

@@ -57,7 +57,7 @@ Ne jamais toucher à `lib/theme/`, sauf si la tâche le demande explicitement.
   Tests couvrant le cas d'une semaine à zéro et celui d'un déplacement hors semaine,
   qui doit être refusé.
 
-- [ ] **5. Moteur de proposition, version 1.** Dans `lib/engine/`, la fonction qui
+- [x] **5. Moteur de proposition, version 1.** Dans `lib/engine/`, la fonction qui
   choisit les 4 à 5 défis du jour, selon les six critères listés dans la section
   « Ce que le moteur prend en compte » de `docs/brief.md`. Règles simples et
   lisibles, pas d'apprentissage automatique. Tests : au moins une tuile faisable
