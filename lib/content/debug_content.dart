@@ -1,3 +1,5 @@
+import '../validation/timer_state.dart';
+
 /// Textes du panneau de débogage. Jamais vus en production.
 abstract final class DebugContent {
   static const String title = 'DEBUG';
@@ -54,4 +56,38 @@ abstract final class DebugContent {
   static String filled(int count) => count == 0
       ? 'Rien à remplir avant aujourd\'hui.'
       : '$count réussite${count > 1 ? 's' : ''} ajoutée${count > 1 ? 's' : ''}.';
+
+  static const String simulateLockTitle = 'Simuler le verrouillage';
+  static const String simulateLockHint =
+      'Chaque sortie de l\'app compte comme un verrouillage. Pour les '
+      'appareils sans code, où iOS n\'en signale aucun.';
+
+  /// Ex. « Appareil : déverrouillé · Compteur : tourne · Dernière absence :
+  /// verrouillage ».
+  static String timerStatus({
+    required bool? locked,
+    required TimerPhase phase,
+    required Absence? lastAbsence,
+    required bool simulated,
+  }) {
+    final device = switch (locked) {
+      null => 'inconnu',
+      true => 'verrouillé',
+      false => 'déverrouillé',
+    };
+    final counter = switch (phase) {
+      TimerPhase.ready => 'pas lancé',
+      TimerPhase.counting => 'tourne',
+      TimerPhase.interrupted => 'en pause',
+      TimerPhase.completed => 'terminé',
+      TimerPhase.abandoned => 'abandonné',
+    };
+    final absence = switch (lastAbsence) {
+      null => '',
+      Absence.locked => ' · Dernière absence : verrouillage',
+      Absence.left => ' · Dernière absence : sortie de l\'app',
+    };
+    return 'Appareil : $device${simulated ? ' (simulé)' : ''} · '
+        'Compteur : $counter$absence';
+  }
 }

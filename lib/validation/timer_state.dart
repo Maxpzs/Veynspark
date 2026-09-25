@@ -5,13 +5,11 @@ enum TimerPhase {
   /// Pas encore lancé.
   ready,
 
-  /// Lancé, en attente du verrouillage : le compteur ne tourne pas encore.
-  waitingForLock,
-
-  /// Appareil verrouillé, le compteur tourne.
+  /// Le compteur tourne : l'app est affichée, ou l'appareil verrouillé.
   counting,
 
-  /// Déverrouillé avant la fin : le compteur est arrêté, on peut reprendre.
+  /// L'app a été quittée avant la fin : le compteur est arrêté, on peut
+  /// reprendre.
   interrupted,
 
   /// Durée atteinte.
@@ -19,6 +17,15 @@ enum TimerPhase {
 
   /// Arrêté par la personne. Aucune conséquence.
   abandoned,
+}
+
+/// Ce qu'a été une absence de l'app pendant le défi.
+enum Absence {
+  /// L'appareil a été verrouillé : le compteur a continué.
+  locked,
+
+  /// La personne est allée ailleurs : le compteur s'est arrêté à son départ.
+  left,
 }
 
 /// Un instantané du minuteur, immuable.
@@ -39,24 +46,22 @@ class TimerState {
 
   final TimerPhase phase;
 
-  /// Durée à tenir, appareil verrouillé.
+  /// Durée à tenir.
   final Duration target;
 
-  /// Temps verrouillé cumulé jusqu'au dernier verrouillage.
+  /// Temps tenu avant la dernière reprise.
   final Duration elapsed;
 
-  /// Début du verrouillage en cours, pendant [TimerPhase.counting].
+  /// Depuis quand le compteur tourne, pendant [TimerPhase.counting].
   final DateTime? countingSince;
 
   bool get isActive =>
-      phase == TimerPhase.waitingForLock ||
-      phase == TimerPhase.counting ||
-      phase == TimerPhase.interrupted;
+      phase == TimerPhase.counting || phase == TimerPhase.interrupted;
 
   bool get isOver =>
       phase == TimerPhase.completed || phase == TimerPhase.abandoned;
 
-  /// Temps verrouillé cumulé à [now], jamais au-delà de [target].
+  /// Temps tenu à [now], jamais au-delà de [target].
   Duration elapsedAt(DateTime now) {
     final since = countingSince;
     if (since == null) return elapsed;

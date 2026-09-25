@@ -69,9 +69,19 @@ final class GlynaHaptics {
 /// Verrouillé tant que les données protégées sont indisponibles
 /// (`isProtectedDataAvailable`). Émet l'état courant dès l'abonnement, puis
 /// chaque changement. Aucune autorisation requise.
+///
+/// iOS ne rend les données protégées indisponibles qu'une dizaine de secondes
+/// après le verrouillage, alors qu'une app en arrière-plan est suspendue en
+/// quelques secondes. Tant que le flux est écouté (un défi à minuteur est en
+/// cours), on demande donc un délai d'arrière-plan au départ de l'app, rendu
+/// dès que le verrouillage est signalé ou que l'app revient.
+///
+/// Sans code sur l'appareil, les données protégées restent toujours
+/// disponibles : aucun verrouillage n'est jamais signalé.
 final class GlynaLockStream: NSObject, FlutterStreamHandler {
   private var sink: FlutterEventSink?
   private var observers: [NSObjectProtocol] = []
+  private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
 
   func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)
     -> FlutterError?
@@ -82,11 +92,22 @@ final class GlynaLockStream: NSObject, FlutterStreamHandler {
       center.addObserver(
         forName: UIApplication.protectedDataWillBecomeUnavailableNotification,
         object: nil, queue: .main
-      ) { [weak self] _ in self?.sink?(true) },
+      ) { [weak self] _ in
+        self?.sink?(true)
+        self?.endBackgroundTask()
+      },
       center.addObserver(
         forName: UIApplication.protectedDataDidBecomeAvailableNotification,
         object: nil, queue: .main
       ) { [weak self] _ in self?.sink?(false) },
+      center.addObserver(
+        forName: UIApplication.didEnterBackgroundNotification,
+        object: nil, queue: .main
+      ) { [weak self] _ in self?.beginBackgroundTask() },
+      center.addObserver(
+        forName: UIApplication.willEnterForegroundNotification,
+        object: nil, queue: .main
+      ) { [weak self] _ in self?.endBackgroundTask() },
     ]
     events(!UIApplication.shared.isProtectedDataAvailable)
     return nil
@@ -96,6 +117,20 @@ final class GlynaLockStream: NSObject, FlutterStreamHandler {
     observers.forEach(NotificationCenter.default.removeObserver)
     observers = []
     sink = nil
+    endBackgroundTask()
     return nil
+  }
+
+  private func beginBackgroundTask() {
+    guard backgroundTask == .invalid else { return }
+    backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "GlynaLock") {
+      [weak self] in self?.endBackgroundTask()
+    }
+  }
+
+  private func endBackgroundTask() {
+    guard backgroundTask != .invalid else { return }
+    UIApplication.shared.endBackgroundTask(backgroundTask)
+    backgroundTask = .invalid
   }
 }

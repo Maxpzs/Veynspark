@@ -16,12 +16,17 @@ import 'bento_tile.dart';
 /// nettoyage : la tuile s'enfonce, [onTileImpact] est appelé, elle quitte la
 /// grille, et les autres se recomposent avec le ressort
 /// [GlynaMotion.gridSpring].
+///
+/// Un défi de [setAside] (reporté) quitte la grille sans fête : ni
+/// enfoncement ni [onTileImpact], donc ni son ni vibration. Il s'efface, et
+/// la grille se referme de la même façon.
 class BentoGrid extends StatefulWidget {
   const BentoGrid({
     super.key,
     required this.day,
     required this.dayTiles,
     required this.tiles,
+    this.setAside = const {},
     required this.onTileTap,
     required this.onTileImpact,
     required this.empty,
@@ -35,6 +40,9 @@ class BentoGrid extends StatefulWidget {
 
   /// Les tuiles encore dans la grille.
   final List<Challenge> tiles;
+
+  /// Les défis qui quittent la grille sans avoir été nettoyés.
+  final Set<String> setAside;
 
   final ValueChanged<Challenge> onTileTap;
 
@@ -112,7 +120,10 @@ class _BentoGridState extends State<BentoGrid> with TickerProviderStateMixin {
     }
     for (final challenge in _laidOut.toList()) {
       final id = challenge.id;
-      if (!incoming.contains(id) && !_presses.containsKey(id)) {
+      if (incoming.contains(id) || _presses.containsKey(id)) continue;
+      if (widget.setAside.contains(id)) {
+        _leave(challenge, celebrate: false);
+      } else {
         _press(challenge);
       }
     }
@@ -139,17 +150,19 @@ class _BentoGridState extends State<BentoGrid> with TickerProviderStateMixin {
         AnimationController(vsync: this, duration: GlynaMotion.tilePress)
           ..addListener(_tick)
           ..addStatusListener((status) {
-            if (status == AnimationStatus.completed) _leave(challenge);
+            if (status == AnimationStatus.completed) {
+              _leave(challenge, celebrate: true);
+            }
           })
           ..forward();
   }
 
-  void _leave(Challenge challenge) {
+  void _leave(Challenge challenge, {required bool celebrate}) {
     final id = challenge.id;
     _presses.remove(id)?.dispose();
 
     final current = _currentRects();
-    widget.onTileImpact(challenge);
+    if (celebrate) widget.onTileImpact(challenge);
 
     final exit =
         AnimationController(vsync: this, duration: GlynaMotion.tileExit)
@@ -159,7 +172,12 @@ class _BentoGridState extends State<BentoGrid> with TickerProviderStateMixin {
               setState(() => _exits.remove(id)?.controller.dispose());
             }
           });
-    _exits[id] = _ExitingTile(challenge, current[id]!, exit);
+    _exits[id] = _ExitingTile(
+      challenge,
+      current[id]!,
+      exit,
+      celebrate: celebrate,
+    );
 
     setState(() {
       _from = current;
@@ -241,14 +259,25 @@ class _BentoGridState extends State<BentoGrid> with TickerProviderStateMixin {
 }
 
 class _ExitingTile {
-  _ExitingTile(this.challenge, this.rect, this.controller);
+  _ExitingTile(
+    this.challenge,
+    this.rect,
+    this.controller, {
+    required this.celebrate,
+  });
 
   final Challenge challenge;
   final Rect rect;
   final AnimationController controller;
 
+  /// Faux pour un défi reporté : il s'efface sur place, sans s'enfoncer.
+  final bool celebrate;
+
   Widget build() {
     final t = GlynaMotion.exit.transform(controller.value);
+    if (!celebrate) {
+      return Opacity(opacity: 1 - t, child: BentoTile(challenge));
+    }
     final scale =
         GlynaMotion.tilePressScale +
         (GlynaMotion.tileExitScale - GlynaMotion.tilePressScale) * t;

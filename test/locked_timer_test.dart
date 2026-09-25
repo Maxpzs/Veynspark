@@ -20,6 +20,22 @@ void main() {
 
   tearDown(() => timer.dispose());
 
+  /// L'appareil est verrouillé pendant [held], puis on revient dans l'app.
+  void lockFor(Duration held) {
+    detector.lock();
+    timer.appHidden();
+    clock.advance(held);
+    detector.unlock();
+    timer.appShown();
+  }
+
+  /// La personne va dans une autre app pendant [away], puis revient.
+  void leaveFor(Duration away) {
+    timer.appHidden();
+    clock.advance(away);
+    timer.appShown();
+  }
+
   group('démarrage', () {
     test('prêt, sans écouter le verrouillage', () {
       expect(timer.state.phase, TimerPhase.ready);
@@ -27,11 +43,12 @@ void main() {
       expect(detector.hasListener, isFalse);
     });
 
-    test('lancé, il attend le verrouillage sans compter', () {
+    test('lancé, le compteur tourne aussitôt', () {
       timer.start();
       clock.advance(const Duration(minutes: 3));
-      expect(timer.state.phase, TimerPhase.waitingForLock);
-      expect(timer.elapsed, Duration.zero);
+      expect(timer.state.phase, TimerPhase.counting);
+      expect(timer.elapsed, const Duration(minutes: 3));
+      expect(timer.state.remainingAt(clock.now()), const Duration(minutes: 17));
     });
 
     test('ne se lance pas deux fois', () {
@@ -39,91 +56,110 @@ void main() {
       expect(timer.start, throwsStateError);
     });
 
-    test('compte tout de suite si l\'appareil est déjà verrouillé', () {
-      detector = FakeLockDetector(locked: true);
-      timer = LockedTimer(target: target, detector: detector, clock: clock);
-      timer.start();
-      expect(timer.state.phase, TimerPhase.counting);
-    });
-  });
-
-  group('le compteur ne progresse que verrouillé', () {
-    test('verrouillé, le temps passe', () {
-      timer.start();
-      detector.lock();
-      clock.advance(const Duration(minutes: 7));
-      expect(timer.state.phase, TimerPhase.counting);
-      expect(timer.elapsed, const Duration(minutes: 7));
-      expect(timer.state.remainingAt(clock.now()), const Duration(minutes: 13));
-    });
-
     test('jamais au-delà de la durée visée', () {
       timer.start();
-      detector.lock();
       clock.advance(const Duration(hours: 2));
       expect(timer.elapsed, target);
     });
-
-    test('un verrouillage répété ne remet pas le compteur à zéro', () {
-      timer.start();
-      detector.lock();
-      clock.advance(const Duration(minutes: 5));
-      detector.lock();
-      clock.advance(const Duration(minutes: 5));
-      expect(timer.elapsed, const Duration(minutes: 10));
-    });
   });
 
-  group('arrêt au déverrouillage', () {
-    test('déverrouillé avant la fin : compteur arrêté au temps tenu', () {
+  group('app affichée', () {
+    test('la durée atteinte termine le défi au tic suivant', () {
       timer.start();
-      detector.lock();
-      clock.advance(const Duration(minutes: 12));
-      detector.unlock();
-      expect(timer.state.phase, TimerPhase.interrupted);
-      expect(timer.elapsed, const Duration(minutes: 12));
-
-      clock.advance(const Duration(minutes: 10));
-      expect(timer.elapsed, const Duration(minutes: 12));
-    });
-
-    test('un nouveau verrouillage ne reprend pas tout seul', () {
-      timer.start();
-      detector.lock();
-      clock.advance(const Duration(minutes: 12));
-      detector.unlock();
-      detector.lock();
-      clock.advance(const Duration(minutes: 5));
-      expect(timer.state.phase, TimerPhase.interrupted);
-      expect(timer.elapsed, const Duration(minutes: 12));
-    });
-
-    test('déverrouillé après la durée : réussi', () {
-      timer.start();
-      detector.lock();
-      clock.advance(const Duration(minutes: 25));
-      detector.unlock();
+      clock.advance(const Duration(minutes: 19));
+      timer.tick();
+      expect(timer.state.phase, TimerPhase.counting);
+      clock.advance(const Duration(minutes: 1));
+      timer.tick();
       expect(timer.state.phase, TimerPhase.completed);
       expect(timer.elapsed, target);
       expect(detector.hasListener, isFalse);
     });
   });
 
-  group('reprise', () {
-    test('le temps déjà tenu est gardé', () {
+  group('appareil verrouillé', () {
+    test('le compteur continue pendant le verrouillage', () {
+      timer.start();
+      clock.advance(const Duration(minutes: 2));
+      lockFor(const Duration(minutes: 10));
+      expect(timer.state.phase, TimerPhase.counting);
+      expect(timer.elapsed, const Duration(minutes: 12));
+      expect(timer.lastAbsence.value, Absence.locked);
+    });
+
+    test('la durée atteinte verrouillé : réussi au retour', () {
+      timer.start();
+      lockFor(const Duration(minutes: 25));
+      expect(timer.state.phase, TimerPhase.completed);
+      expect(timer.elapsed, target);
+    });
+
+    test('un verrouillage signalé juste avant le départ compte aussi', () {
       timer.start();
       detector.lock();
+      timer.appHidden();
+      clock.advance(const Duration(minutes: 5));
+      timer.appShown();
+      expect(timer.state.phase, TimerPhase.counting);
+    });
+
+    test('pendant l\'absence, un tic ne juge rien', () {
+      timer.start();
+      timer.appHidden();
+      clock.advance(const Duration(minutes: 30));
+      timer.tick();
+      expect(timer.state.phase, TimerPhase.counting);
+    });
+  });
+
+  group('sortie de l\'app', () {
+    test('arrête le compteur à son départ, l\'absence ne compte pas', () {
+      timer.start();
       clock.advance(const Duration(minutes: 12));
-      detector.unlock();
+      leaveFor(const Duration(minutes: 10));
+      expect(timer.state.phase, TimerPhase.interrupted);
+      expect(timer.elapsed, const Duration(minutes: 12));
+      expect(timer.lastAbsence.value, Absence.left);
+
+      clock.advance(const Duration(minutes: 10));
+      expect(timer.elapsed, const Duration(minutes: 12));
+    });
+
+    test('un verrouillage d\'une absence passée ne couvre pas la suivante', () {
+      timer.start();
+      lockFor(const Duration(minutes: 5));
+      leaveFor(const Duration(minutes: 5));
+      expect(timer.state.phase, TimerPhase.interrupted);
+      expect(timer.elapsed, const Duration(minutes: 5));
+    });
+
+    test('partir une fois la durée tenue : réussi', () {
+      timer.start();
+      clock.advance(target);
+      leaveFor(const Duration(minutes: 5));
+      expect(timer.state.phase, TimerPhase.completed);
+    });
+
+    test('un nouveau départ pendant l\'arrêt ne change rien', () {
+      timer.start();
+      clock.advance(const Duration(minutes: 12));
+      leaveFor(const Duration(minutes: 1));
+      lockFor(const Duration(minutes: 5));
+      expect(timer.state.phase, TimerPhase.interrupted);
+      expect(timer.elapsed, const Duration(minutes: 12));
+    });
+  });
+
+  group('reprise', () {
+    test('le temps déjà tenu est gardé, le compteur repart aussitôt', () {
+      timer.start();
+      clock.advance(const Duration(minutes: 12));
+      leaveFor(const Duration(minutes: 3));
 
       timer.resume();
-      expect(timer.state.phase, TimerPhase.waitingForLock);
-      clock.advance(const Duration(minutes: 1));
-      expect(timer.elapsed, const Duration(minutes: 12));
-
-      detector.lock();
+      expect(timer.state.phase, TimerPhase.counting);
       clock.advance(const Duration(minutes: 8));
-      detector.unlock();
+      timer.tick();
       expect(timer.state.phase, TimerPhase.completed);
       expect(timer.elapsed, target);
     });
@@ -132,15 +168,12 @@ void main() {
       expect(timer.resume, throwsStateError);
       timer.start();
       expect(timer.resume, throwsStateError);
-      detector.lock();
-      expect(timer.resume, throwsStateError);
     });
   });
 
   group('abandon', () {
     test('possible à tout moment, avec le temps tenu', () {
       timer.start();
-      detector.lock();
       clock.advance(const Duration(minutes: 4));
       timer.stop();
       expect(timer.state.phase, TimerPhase.abandoned);
@@ -150,8 +183,7 @@ void main() {
 
     test('possible pendant un arrêt', () {
       timer.start();
-      detector.lock();
-      detector.unlock();
+      leaveFor(const Duration(minutes: 1));
       timer.stop();
       expect(timer.state.phase, TimerPhase.abandoned);
     });
@@ -161,9 +193,7 @@ void main() {
       expect(timer.state.phase, TimerPhase.ready);
 
       timer.start();
-      detector.lock();
-      clock.advance(target);
-      detector.unlock();
+      lockFor(target);
       timer.stop();
       expect(timer.state.phase, TimerPhase.completed);
     });
@@ -171,12 +201,19 @@ void main() {
     test('plus rien ne bouge après l\'abandon', () {
       timer.start();
       timer.stop();
-      detector.lock();
-      clock.advance(target);
-      detector.unlock();
+      lockFor(target);
+      timer.tick();
       expect(timer.state.phase, TimerPhase.abandoned);
       expect(timer.elapsed, Duration.zero);
     });
+  });
+
+  test('le dernier état de verrouillage reçu reste lisible', () {
+    expect(timer.deviceLocked.value, isNull);
+    timer.start();
+    expect(timer.deviceLocked.value, isFalse);
+    detector.lock();
+    expect(timer.deviceLocked.value, isTrue);
   });
 
   test('le flux d\'état suit chaque étape', () async {
@@ -184,21 +221,16 @@ void main() {
     final subscription = timer.states.listen((s) => phases.add(s.phase));
 
     timer.start();
-    detector.lock();
     clock.advance(const Duration(minutes: 12));
-    detector.unlock();
+    leaveFor(const Duration(minutes: 1));
     timer.resume();
-    detector.lock();
-    clock.advance(const Duration(minutes: 8));
-    detector.unlock();
+    lockFor(const Duration(minutes: 8));
     await pumpEventQueue();
     await subscription.cancel();
 
     expect(phases, [
-      TimerPhase.waitingForLock,
       TimerPhase.counting,
       TimerPhase.interrupted,
-      TimerPhase.waitingForLock,
       TimerPhase.counting,
       TimerPhase.completed,
     ]);

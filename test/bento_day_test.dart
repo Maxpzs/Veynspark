@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:veynspark_v1/content/bento_content.dart';
+import 'package:veynspark_v1/engine/rescheduled_day.dart';
 import 'package:veynspark_v1/engine/weekly_quota_rule.dart';
 import 'package:veynspark_v1/models/challenge.dart';
 import 'package:veynspark_v1/models/challenge_log.dart';
@@ -278,6 +279,132 @@ void main() {
 
         expect(second.tiles.map((c) => c.id), isNot(contains(challenge.id)));
         expect(second.dayTiles.map((c) => c.id), contains(challenge.id));
+      },
+    );
+  });
+
+  group('reporter', () {
+    final friday = DateTime(2026, 9, 25);
+
+    test(
+      'le défi quitte la grille, au journal : reporté, et prévu vendredi',
+      () async {
+        final day = await open();
+        final challenge = all(day).first;
+        final total = day.total;
+
+        await day.postpone(challenge, friday);
+
+        expect(all(day), isNot(contains(challenge)));
+        expect(day.tiles, isNot(contains(challenge)));
+        expect(day.postponed, {challenge.id});
+        expect(day.total, total - 1);
+        expect(day.cleanedCount, 0);
+        final logs = await repository.logsFor(challenge.id);
+        expect(logs.map((l) => l.status), [
+          ChallengeStatus.proposed,
+          ChallengeStatus.postponed,
+          ChallengeStatus.rescheduled,
+        ]);
+        expect(logs.last.date, friday);
+      },
+    );
+
+    test(
+      'après redémarrage, le défi reporté reste hors de la grille',
+      () async {
+        final first = await open();
+        final challenge = all(first).first;
+        await first.postpone(challenge, friday);
+
+        final second = await open();
+        expect(all(second), isNot(contains(challenge)));
+        expect(second.postponed, {challenge.id});
+      },
+    );
+
+    test(
+      'la dernière tuile nettoyée joue la résolution, reports exclus',
+      () async {
+        final day = await open();
+        final [postponed, ...rest] = all(day);
+        await day.postpone(postponed, friday);
+        for (final c in rest) {
+          await day.clean(c);
+        }
+        expect(day.isCleared, isTrue);
+        expect(day.cueFor(rest.last).isResolution, isTrue);
+      },
+    );
+
+    test(
+      'le jour visé, le défi revient dans la grille, sans la dépasser',
+      () async {
+        final wednesday = await open();
+        final challenge = all(wednesday).first;
+        await wednesday.postpone(challenge, friday);
+
+        clock.advance(const Duration(days: 2));
+        final day = await open();
+        expect(day.dayTiles.map((c) => c.id), contains(challenge.id));
+        expect(day.total, lessThanOrEqualTo(maxTiles));
+        expect(day.postponed, isEmpty);
+      },
+    );
+
+    test('seulement dans la semaine, jamais aujourd\'hui', () async {
+      final day = await open();
+      final challenge = all(day).first;
+      expect(
+        () => day.postpone(challenge, DateTime(2026, 9, 23)),
+        throwsArgumentError,
+      );
+      expect(
+        () => day.postpone(challenge, DateTime(2026, 9, 28)),
+        throwsArgumentError,
+      );
+    });
+
+    test(
+      'les jours proposés : les jours restants qui ont de la place',
+      () async {
+        final day = await open();
+        final challenges = all(day);
+
+        final detail = await day.detailOf(challenges.first);
+        expect(detail.postponeDays, [
+          DateTime(2026, 9, 24),
+          friday,
+          DateTime(2026, 9, 26),
+          DateTime(2026, 9, 27),
+        ]);
+
+        for (final c in challenges.take(maxRescheduledPerDay)) {
+          await day.postpone(c, friday);
+        }
+        final after = await day.detailOf(challenges.last);
+        expect(after.postponeDays, isNot(contains(friday)));
+      },
+    );
+
+    test('le dimanche, aucun jour où reporter', () async {
+      clock = FakeClock(DateTime(2026, 9, 27, 10));
+      final day = await open();
+      final detail = await day.detailOf(all(day).first);
+      expect(detail.postponeDays, isEmpty);
+    });
+
+    test(
+      'le détail d\'un défi à objectif porte l\'objectif et le quota',
+      () async {
+        final day = await open();
+        final goalTile = day.goals.first;
+        final detail = await day.detailOf(goalTile);
+        expect(detail.goal?.title, 'Marathon');
+        expect(detail.goal?.done, 0);
+
+        final opportunity = await day.detailOf(day.opportunities.first);
+        expect(opportunity.goal, isNull);
       },
     );
   });

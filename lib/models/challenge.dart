@@ -34,7 +34,8 @@ enum ChallengeDomain {
 /// Façon dont l'app vérifie qu'un défi a été fait. La photo n'en fait jamais
 /// partie.
 enum ValidationMode {
-  /// Minuteur dans l'app, appareil verrouillé pendant toute la durée.
+  /// Minuteur dans l'app, qui continue appareil verrouillé mais s'arrête si
+  /// on quitte l'app.
   lockedTimer,
 
   /// Activité lue dans HealthKit ou Health Connect.

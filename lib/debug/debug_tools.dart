@@ -10,6 +10,7 @@ import '../models/challenge.dart';
 import '../models/challenge_log.dart';
 import '../models/goal.dart';
 import '../store/glyna_repository.dart';
+import 'debug_lock_detector.dart';
 
 /// Heure à laquelle sont datés les résultats d'exemple.
 const int sampleResultHour = 18;
@@ -44,6 +45,7 @@ class DebugTools {
   DebugTools({
     required GlynaRepository repository,
     required OffsetClock clock,
+    required this.lock,
     List<Challenge> library = ChallengeLibrary.all,
   }) : _repository = repository,
        _clock = clock,
@@ -54,6 +56,9 @@ class DebugTools {
   final OffsetClock _clock;
   final List<Challenge> _library;
   final WeekService _weeks;
+
+  /// Le verrouillage simulé, pour les défis à minuteur.
+  final DebugLockDetector lock;
 
   /// Efface tout le journal d'aujourd'hui, défis nettoyés compris, et
   /// recompte les quotas de la semaine. Le bento tirera une grille neuve.

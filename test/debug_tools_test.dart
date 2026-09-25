@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:veynspark_v1/analytics/analytics_event.dart';
 import 'package:veynspark_v1/content/debug_content.dart';
+import 'package:veynspark_v1/debug/debug_lock_detector.dart';
 import 'package:veynspark_v1/debug/debug_tools.dart';
 import 'package:veynspark_v1/engine/clock.dart';
 import 'package:veynspark_v1/models/challenge.dart';
@@ -13,6 +14,7 @@ import 'package:veynspark_v1/store/glyna_repository.dart';
 import 'package:veynspark_v1/store/local/glyna_database.dart';
 
 import 'support/fake_clock.dart';
+import 'support/fake_lock_detector.dart';
 
 void main() {
   late GlynaRepository repository;
@@ -40,7 +42,11 @@ void main() {
     repository = GlynaRepository(GlynaDatabase(NativeDatabase.memory()));
     base = FakeClock(DateTime(2026, 9, 23, 19));
     clock = OffsetClock(base: base);
-    tools = DebugTools(repository: repository, clock: clock);
+    tools = DebugTools(
+      repository: repository,
+      clock: clock,
+      lock: DebugLockDetector(FakeLockDetector()),
+    );
   });
 
   tearDown(() => repository.close());

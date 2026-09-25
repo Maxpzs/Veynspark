@@ -317,7 +317,7 @@ relance.
 
 | Type de défi | Validation | Note technique |
 | --- | --- | --- |
-| Lecture, travail, déconnexion | Minuteur dans l'app + **appareil verrouillé** pendant la durée | iOS : `UIApplication.isProtectedDataAvailable` et ses notifications. Android : diffusions d'état d'écran et de verrouillage. Aucune autorisation spéciale requise |
+| Lecture, travail, déconnexion | Minuteur dans l'app, lancé avec le défi, qui **continue appareil verrouillé** et **s'arrête si on quitte l'app** | Il faut distinguer un verrouillage d'un départ vers une autre app. iOS : `UIApplication.isProtectedDataAvailable` et ses notifications, qui supposent un code sur l'appareil. Android : diffusions d'état d'écran et de verrouillage. Aucune autorisation spéciale requise |
 | Course, marche, vélo | Lecture de l'activité dans **HealthKit** et **Health Connect** | Ne jamais passer par l'API Strava. Strava écrit déjà dans Apple Santé. Rejeter les saisies manuelles en contrôlant la source de la mesure |
 | Activité à plusieurs | **QR régénéré toutes les 10 s**, scan mutuel, validation serveur dans une fenêtre courte | Un QR statique se photographie et ne prouve rien |
 | Cuisine, création, divers | Déclaratif, assumé comme tel | Ne rien promettre qu'on ne vérifie |
@@ -330,12 +330,14 @@ réussite — mais ce qu'il y a au milieu n'a rien à voir.
 
 | Mode | Ce que voit la personne pendant le défi |
 | --- | --- |
-| **Minuteur** (lecture, travail, déconnexion) | Plein écran noir, le temps qui passe, rien d'autre, aucune navigation. Consigne : « Pose ton téléphone. Il se verrouille, le compteur tourne. » |
+| **Minuteur** (lecture, travail, déconnexion) | Plein écran noir, le temps qui passe, rien d'autre, aucune navigation. Consigne : « Le compteur tourne. Verrouille si tu veux, mais ne quitte pas l'app. » |
 | **Sport** (course, marche, vélo) | **Rien.** Le téléphone reste dans la poche, c'est tout l'intérêt. L'app affiche un état d'attente discret — « On t'attend au retour » — et lit l'activité dans Santé ensuite. Aucun suivi GPS dans Glyna. |
 | **Co-présence** (défi à plusieurs) | L'écran de scan : le QR de la personne, régénéré toutes les 10 s, et la caméra pour scanner celui d'en face. |
 | **Déclaratif** (cuisine, création) | Le contenu du défi lui-même — la recette, les étapes, la consigne — et un bouton « c'est fait » à la fin. |
 
-Pour le minuteur : si la personne déverrouille avant la fin, le compteur s'arrête.
+Pour le minuteur : le compteur tourne dès le lancement, écran allumé ou appareil
+verrouillé. Si la personne quitte l'app avant la fin, le compteur s'arrête au moment
+où elle est partie, et le temps passé ailleurs ne compte pas.
 Message sobre, sans reproche : « Compteur arrêté à 12 minutes. On reprend ? »
 
 Pour le sport : le défi reste ouvert tant que l'activité n'a pas été détectée. Aucune

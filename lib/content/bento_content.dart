@@ -5,6 +5,10 @@ abstract final class BentoContent {
   static const String clearedTitle = 'GRILLE PROPRE.';
   static const String clearedBody = 'Le reste de la journée est à toi.';
 
+  /// Tout a été reporté : sobre, sans commentaire.
+  static const String emptyTitle = 'À DEMAIN.';
+  static const String emptyBody = 'Plus rien de prévu aujourd\'hui.';
+
   static const String contextHome = 'Chez soi';
   static const String contextOutside = 'Dehors';
   static const String contextAnywhere = 'N\'importe où';

@@ -1,20 +1,28 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import '../engine/clock.dart';
 import 'lock_detector.dart';
 import 'timer_state.dart';
 
 /// Le minuteur des défis de lecture, de travail et de déconnexion.
 ///
-/// Le compteur ne progresse que pendant que l'appareil est verrouillé. Un
-/// déverrouillage avant la fin l'arrête ; la personne peut reprendre, le temps
-/// déjà tenu est gardé. On peut abandonner à tout moment, sans conséquence.
+/// Le compteur tourne dès le lancement, et continue appareil verrouillé. Seule
+/// une sortie de l'app l'arrête : la personne peut reprendre, le temps déjà
+/// tenu est gardé. On peut abandonner à tout moment, sans conséquence.
 ///
-/// L'app est souvent suspendue pendant le verrouillage : le temps écoulé se
-/// calcule à l'horloge, au déverrouillage, et non en comptant des tics. C'est
-/// donc au déverrouillage qu'on sait si la durée a été atteinte.
+/// Quand l'app passe en arrière-plan ([appHidden]), on ne sait pas encore
+/// pourquoi. Le compteur continue ; au retour ([appShown]), on regarde si le
+/// détecteur a signalé un verrouillage entre-temps. Oui : rien à dire. Non :
+/// la personne est allée ailleurs, le compteur s'arrête à son départ et le
+/// temps d'absence ne compte pas.
 ///
-/// Logique seule : l'interface écoute [states].
+/// L'app est souvent suspendue en arrière-plan : le temps se calcule à
+/// l'horloge, et non en comptant des tics. Pendant que l'app est affichée,
+/// [tick] termine le défi quand la durée est atteinte.
+///
+/// Logique seule : l'interface écoute [states] et transmet le cycle de vie.
 class LockedTimer {
   LockedTimer({
     required Duration target,
@@ -30,7 +38,15 @@ class LockedTimer {
   final StreamController<TimerState> _states =
       StreamController<TimerState>.broadcast();
   StreamSubscription<bool>? _lockSubscription;
+  final ValueNotifier<bool?> _deviceLocked = ValueNotifier<bool?>(null);
+  final ValueNotifier<Absence?> _lastAbsence = ValueNotifier<Absence?>(null);
   TimerState _state;
+
+  /// Départ de l'app en cours, pendant que le compteur tourne.
+  DateTime? _awaySince;
+
+  /// Un verrouillage a été signalé depuis le dernier retour dans l'app.
+  bool _lockSeen = false;
 
   /// L'état courant.
   TimerState get state => _state;
@@ -38,24 +54,73 @@ class LockedTimer {
   /// Chaque changement d'état, à partir de l'abonnement.
   Stream<TimerState> get states => _states.stream;
 
-  /// Temps verrouillé cumulé, maintenant.
+  /// Le dernier état de verrouillage reçu du détecteur, `null` tant qu'aucun
+  /// n'est arrivé.
+  ValueListenable<bool?> get deviceLocked => _deviceLocked;
+
+  /// Ce qu'a été la dernière absence de l'app, `null` s'il n'y en a pas eu.
+  ValueListenable<Absence?> get lastAbsence => _lastAbsence;
+
+  /// Temps tenu, maintenant.
   Duration get elapsed => _state.elapsedAt(_clock.now());
 
-  /// Lance le minuteur. Il attend le verrouillage pour compter.
+  /// Lance le minuteur. Le compteur tourne aussitôt.
   void start() {
     if (_state.phase != TimerPhase.ready) {
       throw StateError('Le minuteur a déjà été lancé.');
     }
-    _emit(_state.copyWith(phase: TimerPhase.waitingForLock));
+    _count();
     _lockSubscription = _detector.lockStates.listen(_onLockChanged);
   }
 
-  /// Reprend après un déverrouillage, avec le temps déjà tenu.
+  /// Reprend après une sortie de l'app, avec le temps déjà tenu.
   void resume() {
     if (_state.phase != TimerPhase.interrupted) {
       throw StateError('Seul un compteur arrêté se reprend.');
     }
-    _emit(_state.copyWith(phase: TimerPhase.waitingForLock));
+    _count();
+  }
+
+  /// Termine le défi si la durée est atteinte. À appeler pendant que l'app
+  /// est affichée ; sans effet pendant une absence, jugée au retour.
+  void tick() {
+    if (_state.phase != TimerPhase.counting || _awaySince != null) return;
+    _completeIfReached();
+  }
+
+  /// L'app n'est plus affichée : verrouillage, ou départ ailleurs.
+  void appHidden() {
+    if (_state.phase != TimerPhase.counting || _awaySince != null) return;
+    _awaySince = _clock.now();
+  }
+
+  /// L'app est de nouveau affichée : on juge l'absence.
+  void appShown() {
+    final awaySince = _awaySince;
+    final lockSeen = _lockSeen;
+    _awaySince = null;
+    _lockSeen = false;
+    if (awaySince == null || _state.phase != TimerPhase.counting) return;
+
+    if (lockSeen) {
+      _lastAbsence.value = Absence.locked;
+      _completeIfReached();
+      return;
+    }
+    _lastAbsence.value = Absence.left;
+    final held = _state.elapsedAt(awaySince);
+    final stopped = _state.copyWith(
+      phase: held >= _state.target
+          ? TimerPhase.completed
+          : TimerPhase.interrupted,
+      elapsed: held,
+      countingSince: () => null,
+    );
+    if (stopped.isOver) {
+      _finish(stopped);
+    } else {
+      _emit(stopped);
+    }
   }
 
   /// Arrête le défi. Toujours possible, jamais reproché. Sans effet si le
@@ -76,33 +141,34 @@ class LockedTimer {
     await _lockSubscription?.cancel();
     _lockSubscription = null;
     await _states.close();
+    _deviceLocked.dispose();
+    _lastAbsence.dispose();
+  }
+
+  void _count() {
+    _lockSeen = false;
+    _emit(
+      _state.copyWith(
+        phase: TimerPhase.counting,
+        countingSince: () => _clock.now(),
+      ),
+    );
   }
 
   void _onLockChanged(bool locked) {
-    final now = _clock.now();
-    switch (_state.phase) {
-      case TimerPhase.waitingForLock when locked:
-        _emit(
-          _state.copyWith(phase: TimerPhase.counting, countingSince: () => now),
-        );
-      case TimerPhase.counting when !locked:
-        final total = _state.elapsedAt(now);
-        final stopped = _state.copyWith(
-          phase: total >= _state.target
-              ? TimerPhase.completed
-              : TimerPhase.interrupted,
-          elapsed: total,
-          countingSince: () => null,
-        );
-        if (stopped.isOver) {
-          _finish(stopped);
-        } else {
-          _emit(stopped);
-        }
-      default:
-        // Doublon, ou verrouillage pendant un arrêt : la reprise se demande.
-        break;
-    }
+    _deviceLocked.value = locked;
+    if (locked) _lockSeen = true;
+  }
+
+  void _completeIfReached() {
+    if (_state.elapsedAt(_clock.now()) < _state.target) return;
+    _finish(
+      _state.copyWith(
+        phase: TimerPhase.completed,
+        elapsed: _state.target,
+        countingSince: () => null,
+      ),
+    );
   }
 
   void _finish(TimerState state) {

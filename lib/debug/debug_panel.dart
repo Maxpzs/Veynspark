@@ -108,6 +108,22 @@ class _DebugPanelState extends State<DebugPanel> {
               Text(message, style: textTheme.bodyMedium),
             ],
             const SizedBox(height: GlynaSpacing.md),
+            ValueListenableBuilder<bool>(
+              valueListenable: tools.lock.simulating,
+              builder: (context, simulating, _) => SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  DebugContent.simulateLockTitle,
+                  style: textTheme.bodyLarge,
+                ),
+                subtitle: Text(
+                  DebugContent.simulateLockHint,
+                  style: textTheme.bodyMedium,
+                ),
+                value: simulating,
+                onChanged: tools.lock.setSimulating,
+              ),
+            ),
             for (final (label, action) in actions)
               SizedBox(
                 height: GlynaSpacing.minTouchTarget,

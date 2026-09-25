@@ -5,6 +5,7 @@ import '../content/challenge_library.dart';
 import '../engine/clock.dart';
 import '../engine/goal_credit.dart';
 import '../engine/goal_track.dart';
+import '../engine/rescheduled_day.dart';
 import '../engine/proposal_engine.dart';
 import '../engine/week_calendar.dart';
 import '../engine/week_service.dart';
@@ -12,15 +13,17 @@ import '../feedback/clean_cue.dart';
 import '../models/challenge.dart';
 import '../models/challenge_log.dart';
 import '../models/goal.dart';
+import 'challenge_detail.dart';
 import 'glyna_repository.dart';
 import 'success_progress.dart';
 
-/// Le bento du jour : les défis encore dans la grille, et l'ordre dans lequel
-/// les autres ont été nettoyés.
+/// Le bento du jour : les défis encore dans la grille, l'ordre dans lequel
+/// les autres ont été nettoyés, et ceux qui ont été reportés.
 ///
 /// La grille est tirée par le moteur une seule fois par jour, puis gardée dans
 /// le journal sous l'état « proposé ». Relancer l'app rend donc la même
-/// grille, et les défis déjà réussis aujourd'hui n'y reviennent pas.
+/// grille, et les défis déjà réussis ou reportés aujourd'hui n'y reviennent
+/// pas. Les défis reportés sur aujourd'hui y entrent au tirage.
 class BentoDay extends ChangeNotifier {
   BentoDay({
     required GlynaRepository repository,
@@ -43,6 +46,10 @@ class BentoDay extends ChangeNotifier {
   List<Challenge> _goals = [];
   List<Challenge> _opportunities = [];
   final List<String> _cleaned = [];
+
+  /// Défis reportés à un autre jour : ils quittent la grille sans être
+  /// nettoyés.
+  final Set<String> _postponed = {};
 
   /// Défis validés dont la réussite est déjà enregistrée, mais qui n'ont pas
   /// encore quitté la grille.
@@ -70,11 +77,18 @@ class BentoDay extends ChangeNotifier {
   /// Les tuiles encore dans la grille, dans l'ordre du moteur.
   List<Challenge> get tiles => [
     for (final c in _dayTiles)
-      if (!_cleaned.contains(c.id)) c,
+      if (!_cleaned.contains(c.id) && !_postponed.contains(c.id)) c,
   ];
 
-  /// Nombre de tuiles de la grille en début de journée.
-  int get total => _dayTiles.length;
+  /// Les défis reportés aujourd'hui : ils quittent la grille sans fête.
+  Set<String> get postponed => Set.unmodifiable(_postponed);
+
+  /// Nombre de défis nettoyés aujourd'hui.
+  int get cleanedCount => _cleaned.length;
+
+  /// Nombre de tuiles à nettoyer aujourd'hui : la grille du matin, moins les
+  /// défis reportés. La dernière nettoyée résout l'accord.
+  int get total => _dayTiles.length - _postponed.length;
 
   bool get isCleared => _isLoaded && _goals.isEmpty && _opportunities.isEmpty;
 
@@ -106,7 +120,14 @@ class BentoDay extends ChangeNotifier {
         ?_library[id],
     ];
     if (grid.isEmpty) {
-      grid = _engine.propose(now: now, goals: tracks, logs: logs).all;
+      final rescheduled = [
+        for (final id in _idsWith(todayLogs, ChallengeStatus.rescheduled))
+          ?_library[id],
+      ];
+      grid = withRescheduled(
+        _engine.propose(now: now, goals: tracks, logs: logs),
+        rescheduled,
+      ).all;
       await _repository.addLogs([
         for (final c in grid)
           ChallengeLog(
@@ -137,6 +158,12 @@ class BentoDay extends ChangeNotifier {
       for (final id in _idsWith(todayLogs, ChallengeStatus.succeeded))
         if (inGrid.contains(id)) id,
     ];
+    final postponed = {
+      for (final id in _idsWith(todayLogs, ChallengeStatus.postponed))
+        if (inGrid.contains(id) && !cleaned.contains(id)) id,
+    };
+    bool stays(Challenge c) =>
+        !cleaned.contains(c.id) && !postponed.contains(c.id);
 
     if (_isDisposed) return;
     _goalOf = goalOf;
@@ -146,16 +173,102 @@ class BentoDay extends ChangeNotifier {
     _cleaned
       ..clear()
       ..addAll(cleaned);
+    _postponed
+      ..clear()
+      ..addAll(postponed);
     _goals = [
       for (final c in grid)
-        if (c.kind == ChallengeKind.goal && !cleaned.contains(c.id)) c,
+        if (c.kind == ChallengeKind.goal && stays(c)) c,
     ];
     _opportunities = [
       for (final c in grid)
-        if (c.kind == ChallengeKind.opportunity && !cleaned.contains(c.id)) c,
+        if (c.kind == ChallengeKind.opportunity && stays(c)) c,
     ];
     _isLoaded = true;
     notifyListeners();
+  }
+
+  /// Ce que l'écran de détail montre de [challenge] : son objectif et le
+  /// quota à jour, et les jours où il peut être reporté.
+  Future<ChallengeDetail> detailOf(Challenge challenge) async {
+    final weekStart = _weeks.currentWeekStart;
+    final goal = _goalOf[challenge.id];
+    // Le quota se lit dans le journal, comme au tirage : il n'est enregistré
+    // qu'à la première réussite de la semaine.
+    final goalWeek = goal == null
+        ? null
+        : _weeks
+              .progress(
+                goals: [goal],
+                quotas: await _repository.weekQuotas(weekStart),
+                logs: await _repository.logsBetween(
+                  weekStart,
+                  nextWeekStart(weekStart),
+                ),
+              )
+              .goals
+              .where((w) => w.goalId == goal.id)
+              .firstOrNull;
+    return ChallengeDetail(
+      goal: goal == null || goalWeek == null
+          ? null
+          : GoalProgress(
+              title: goal.title,
+              done: goalWeek.done,
+              target: goalWeek.target,
+            ),
+      postponeDays: await _postponeDays(weekStart),
+    );
+  }
+
+  /// Reporte [challenge] sur [day], un autre jour de la semaine. Il quitte la
+  /// grille tout de suite, sans son ni vibration, et y reviendra ce jour-là.
+  Future<void> postpone(Challenge challenge, DateTime day) async {
+    final today = dateOnly(_clock.now());
+    final target = dateOnly(day);
+    if (!target.isAfter(today) || !isInWeek(target, weekStartOf(today))) {
+      throw ArgumentError.value(day, 'day', 'pas un autre jour de la semaine');
+    }
+    final removed =
+        _goals.remove(challenge) || _opportunities.remove(challenge);
+    if (!removed) return;
+    _postponed.add(challenge.id);
+    notifyListeners();
+    await _repository.addLogs([
+      ChallengeLog(
+        challengeId: challenge.id,
+        date: _clock.now(),
+        status: ChallengeStatus.postponed,
+      ),
+      ChallengeLog(
+        challengeId: challenge.id,
+        date: target,
+        status: ChallengeStatus.rescheduled,
+      ),
+    ]);
+  }
+
+  /// Les jours restants de la semaine, sauf ceux qui ont déjà
+  /// [maxRescheduledPerDay] défis reportés.
+  Future<List<DateTime>> _postponeDays(DateTime weekStart) async {
+    final today = dateOnly(_clock.now());
+    final tomorrow = DateTime(today.year, today.month, today.day + 1);
+    final end = nextWeekStart(weekStart);
+    if (!tomorrow.isBefore(end)) return const [];
+    final load = <DateTime, int>{};
+    for (final log in await _repository.logsBetween(tomorrow, end)) {
+      if (log.status != ChallengeStatus.rescheduled) continue;
+      final day = dateOnly(log.date);
+      load[day] = (load[day] ?? 0) + 1;
+    }
+    return [
+      for (
+        var day = tomorrow;
+        day.isBefore(end);
+        day = DateTime(day.year, day.month, day.day + 1)
+      )
+        if ((load[day] ?? 0) < maxRescheduledPerDay) day,
+    ];
   }
 
   /// Le défi est lancé.

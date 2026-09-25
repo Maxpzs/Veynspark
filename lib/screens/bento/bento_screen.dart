@@ -16,6 +16,7 @@ import '../../theme/theme.dart';
 import '../../validation/lock_detector.dart';
 import '../../validation/platform_lock_detector.dart';
 import '../../widgets/bento_grid.dart';
+import '../challenge_detail/challenge_detail_screen.dart';
 import '../challenge_run/challenge_run_screen.dart';
 
 /// L'écran d'accueil : les défis proposés pour aujourd'hui.
@@ -56,8 +57,8 @@ class _BentoScreenState extends State<BentoScreen> {
   );
   final CleanFeedback _feedback = const CleanFeedback();
 
-  /// Un défi est en cours : un second tap n'en lance pas un autre.
-  bool _running = false;
+  /// Un détail ou un défi est ouvert : un second tap n'en ouvre pas un autre.
+  bool _busy = false;
 
   @override
   void initState() {
@@ -65,11 +66,41 @@ class _BentoScreenState extends State<BentoScreen> {
     unawaited(_day.load());
   }
 
-  // TEMPORAIRE : le tap lance directement le défi. Il ouvrira le détail du
-  // défi, avec « Faire maintenant », quand cet écran existera.
+  /// Le tap ouvre le détail du défi. Le défi se lance de là, ou se reporte.
   Future<void> _onTileTap(Challenge challenge) async {
-    if (_running) return;
-    _feedback.tileTap();
+    if (_busy) return;
+    _busy = true;
+    try {
+      _feedback.tileTap();
+      final detail = await _day.detailOf(challenge);
+      if (!mounted) return;
+      final choice = await Navigator.of(context).push(
+        MaterialPageRoute<ChallengeDetailChoice>(
+          fullscreenDialog: true,
+          builder: (context) => ChallengeDetailScreen(
+            challenge: challenge,
+            detail: detail,
+            today: widget.clock.now(),
+          ),
+        ),
+      );
+      if (!mounted) return;
+      switch (choice) {
+        case DoNow():
+          await _run(challenge);
+        // De retour au bento : la tuile reportée s'efface, sans son.
+        case PostponeTo(:final day):
+          unawaited(_day.postpone(challenge, day));
+        case null:
+          break;
+      }
+    } finally {
+      _busy = false;
+    }
+  }
+
+  /// Lance le défi, depuis son détail.
+  Future<void> _run(Challenge challenge) async {
     final body = ChallengeRunScreen.bodyFor(
       challenge,
       clock: widget.clock,
@@ -84,7 +115,6 @@ class _BentoScreenState extends State<BentoScreen> {
 
     _feedback.challengeAccepted();
     unawaited(_day.accept(challenge));
-    _running = true;
     final outcome = await Navigator.of(context).push(
       MaterialPageRoute<ChallengeRunOutcome>(
         fullscreenDialog: true,
@@ -96,7 +126,6 @@ class _BentoScreenState extends State<BentoScreen> {
         ),
       ),
     );
-    _running = false;
     // De retour au bento : la tuile validée le quitte sous les yeux.
     if (outcome == ChallengeRunOutcome.succeeded && mounted) {
       unawaited(_day.clean(challenge));
@@ -158,9 +187,14 @@ class _BentoScreenState extends State<BentoScreen> {
                               day: _day.date!,
                               dayTiles: _day.dayTiles,
                               tiles: _day.tiles,
+                              setAside: _day.postponed,
                               onTileTap: _onTileTap,
                               onTileImpact: _onTileImpact,
-                              empty: const _Cleared(),
+                              // Une grille vidée par des reports seulement
+                              // n'a rien à fêter.
+                              empty: _day.cleanedCount > 0
+                                  ? const _Cleared()
+                                  : const _Empty(),
                             )
                           : const SizedBox.shrink(),
                     ),
@@ -202,6 +236,27 @@ class _Cleared extends StatelessWidget {
           const Spacer(),
         ],
       ),
+    );
+  }
+}
+
+/// La grille est vide sans qu'aucune tuile ait été nettoyée : tout a été
+/// reporté. Sobre, sans rose ni commentaire.
+class _Empty extends StatelessWidget {
+  const _Empty();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Spacer(),
+        Text(BentoContent.emptyTitle, style: textTheme.displaySmall),
+        const SizedBox(height: GlynaSpacing.md),
+        Text(BentoContent.emptyBody, style: textTheme.bodyLarge),
+        const Spacer(),
+      ],
     );
   }
 }

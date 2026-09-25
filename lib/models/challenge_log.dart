@@ -1,5 +1,17 @@
 /// Où en est un défi pour une journée donnée.
-enum ChallengeStatus { proposed, accepted, succeeded, postponed, abandoned }
+enum ChallengeStatus {
+  proposed,
+  accepted,
+  succeeded,
+
+  /// Écarté de la grille du jour, pour un autre jour de la semaine.
+  postponed,
+  abandoned,
+
+  /// Reporté sur ce jour : la date de la ligne est le jour visé, pas le moment
+  /// du report. Le défi entrera dans la grille de ce jour-là.
+  rescheduled,
+}
 
 /// Pourquoi un défi a été reporté. Alimente le moteur de proposition.
 enum PostponeReason { wrongMoment, notInTheMood, tooHard, other }

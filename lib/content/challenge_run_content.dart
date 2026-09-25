@@ -7,7 +7,7 @@ abstract final class ChallengeRunContent {
   static const String abandon = 'Arrêter';
 
   static const String timerInstruction =
-      'Pose ton téléphone. Il se verrouille, le compteur tourne.';
+      'Le compteur tourne. Verrouille si tu veux, mais ne quitte pas l\'app.';
 
   static const String resume = 'On reprend';
 
